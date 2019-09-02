@@ -14,16 +14,15 @@ from utils import MoleculeDataset, Printer, set_random_seed, synchronize, launch
 
 def evaluate(epoch, model, data_loader, printer):
     model.eval()
-    batch_size = data_loader.batch_size
-    total_log_prob = 0
+    total_prob = 0
     with torch.no_grad():
         for i, data in enumerate(data_loader):
             log_prob = model(actions=data, compute_log_prob=True).detach()
-            total_log_prob -= log_prob
+            prob = log_prob.detach().exp()
+            total_prob += prob
             if printer is not None:
-                prob = log_prob.detach().exp()
-                printer.update(epoch + 1, - log_prob / batch_size, prob / batch_size)
-    return total_log_prob / len(data_loader)
+                printer.update(epoch + 1, - log_prob, prob)
+    return total_prob / len(data_loader)
 
 def main(rank, args):
     """
@@ -100,17 +99,14 @@ def main(rank, args):
         synchronize(args['num_processes'])
 
         # Validation
-        val_log_prob = evaluate(epoch, model, val_loader, val_printer)
+        val_prob = evaluate(epoch, model, val_loader, val_printer)
         if args['num_processes'] > 1:
-            # dist.all_reduce(val_log_prob, op=dist.ReduceOp.SUM)
-            all_val_log_prob = [torch.zeros(val_log_prob.shape) for _ in range(args['num_processes'])]
-            dist.all_gather(all_val_log_prob, val_log_prob)
-            all_val_log_prob = torch.stack(all_val_log_prob)
-            val_prob = (- all_val_log_prob).exp().mean().item()
-            val_log_prob = all_val_log_prob.mean().item()
+            all_val_prob = [torch.zeros(val_prob.shape) for _ in range(args['num_processes'])]
+            dist.all_gather(all_val_prob, val_prob)
+            all_val_prob = torch.stack(all_val_prob)
+            val_prob = all_val_prob.mean().item()
         else:
-            val_prob = (- val_log_prob).exp().item()
-            val_log_prob = val_log_prob.item()
+            val_prob = val_prob.item()
 
         if val_prob >= best_val_prob:
             if rank == 0:
@@ -123,10 +119,9 @@ def main(rank, args):
         if rank == 0:
             print('Validation')
             if writer is not None:
-                writer.add_scalar('validation_log_prob', val_log_prob, epoch)
                 writer.add_scalar('validation_prob', val_prob, epoch)
                 writer.add_scalar('lr', optimizer.lr, epoch)
-            print('Validation log prob {:.4f} | prob {:.10f}'.format(val_log_prob, val_prob))
+            print('Validation prob {:.10f}'.format(val_prob))
 
         synchronize(args['num_processes'])
 
