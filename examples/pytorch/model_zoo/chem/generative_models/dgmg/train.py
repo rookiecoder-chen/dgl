@@ -18,9 +18,6 @@ def evaluate(epoch, model, data_loader, printer):
     total_log_prob = 0
     with torch.no_grad():
         for i, data in enumerate(data_loader):
-            # Todo: remove the two lines below
-            if i == 2:
-                break
             log_prob = model(actions=data, compute_log_prob=True).detach()
             total_log_prob -= log_prob
             if printer is not None:
@@ -87,7 +84,6 @@ def main(rank, args):
 
     # Training
     for epoch in range(args['nepochs']):
-        # Todo: uncomment the block below
         """
         model.train()
         if rank == 0:
@@ -111,11 +107,13 @@ def main(rank, args):
             # dist.all_reduce(val_log_prob, op=dist.ReduceOp.SUM)
             all_val_log_prob = [torch.zeros(val_log_prob.shape) for _ in range(args['num_processes'])]
             dist.all_gather(all_val_log_prob, val_log_prob)
-            # Todo: remove the line below
-            print(all_val_log_prob)
-        val_log_prob /= args['num_processes']
-        val_prob = (- val_log_prob).exp().item()
-        val_log_prob = val_log_prob.item()
+            all_val_log_prob = torch.stack(all_val_log_prob)
+            val_prob = (- all_val_log_prob).exp().mean().item()
+            val_log_prob = all_val_log_prob.mean().item()
+        else:
+            val_prob = (- val_log_prob).exp().item()
+            val_log_prob = val_log_prob.item()
+
         if val_prob >= best_val_prob:
             if rank == 0:
                 torch.save({'model_state_dict': model.state_dict()}, args['checkpoint_dir'])
