@@ -84,7 +84,6 @@ def main(rank, args):
 
     # Training
     for epoch in range(args['nepochs']):
-        """
         model.train()
         if rank == 0:
             print('Training')
@@ -99,7 +98,6 @@ def main(rank, args):
             if rank == 0:
                 train_printer.update(epoch + 1, loss_averaged.item(), prob_averaged.item())
         synchronize(args['num_processes'])
-        """
 
         # Validation
         val_log_prob = evaluate(epoch, model, val_loader, val_printer)
