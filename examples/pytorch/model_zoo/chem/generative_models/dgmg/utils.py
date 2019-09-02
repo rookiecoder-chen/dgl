@@ -1,5 +1,4 @@
 import datetime
-import dgl
 import math
 import numpy as np
 import os
@@ -10,8 +9,7 @@ import torch.distributed as dist
 import torch.nn as nn
 from collections import defaultdict
 from datetime import timedelta
-from dgl import DGLGraph
-from dgl.data.utils import get_download_dir, download, _get_dgl_url
+from dgl.data.utils import download, _get_dgl_url
 from dgl.model_zoo.chem.dgmg import MoleculeEnv
 from multiprocessing import Pool
 from pprint import pprint
@@ -119,7 +117,7 @@ def configure(args):
         Updated configuration
     """
     configure = {
-        'node_hidden_size': 128,
+        'node_hidden_size': 256,
         'num_propagation_rounds': 2,
         'lr': 1e-4,
         'dropout': 0.2,

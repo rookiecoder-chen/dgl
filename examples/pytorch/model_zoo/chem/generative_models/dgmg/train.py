@@ -18,6 +18,9 @@ def evaluate(epoch, model, data_loader, printer):
     total_log_prob = 0
     with torch.no_grad():
         for i, data in enumerate(data_loader):
+            # Todo: remove the two lines below
+            if i == 2:
+                break
             log_prob = model(actions=data, compute_log_prob=True).detach()
             total_log_prob -= log_prob
             if printer is not None:
@@ -84,6 +87,8 @@ def main(rank, args):
 
     # Training
     for epoch in range(args['nepochs']):
+        # Todo: uncomment the block below
+        """
         model.train()
         if rank == 0:
             print('Training')
@@ -97,18 +102,18 @@ def main(rank, args):
             optimizer.backward_and_step(loss_averaged)
             if rank == 0:
                 train_printer.update(epoch + 1, loss_averaged.item(), prob_averaged.item())
-
         synchronize(args['num_processes'])
+        """
 
         # Validation
         val_log_prob = evaluate(epoch, model, val_loader, val_printer)
         if args['num_processes'] > 1:
-            dist.all_reduce(val_log_prob, op=dist.ReduceOp.SUM)
+            # dist.all_reduce(val_log_prob, op=dist.ReduceOp.SUM)
+            all_val_log_prob = [torch.zeros(val_log_prob.shape) for _ in range(args['num_processes'])]
+            dist.all_gather(all_val_log_prob, val_log_prob)
+            # Todo: remove the line below
+            print(all_val_log_prob)
         val_log_prob /= args['num_processes']
-        # Strictly speaking, the computation of probability here is different from what is
-        # performed on the training set as we first take an average of log likelihood and then
-        # take the exponentiation. By Jensen's inequality, the resulting value is then a
-        # lower bound of the real probabilities.
         val_prob = (- val_log_prob).exp().item()
         val_log_prob = val_log_prob.item()
         if val_prob >= best_val_prob:
