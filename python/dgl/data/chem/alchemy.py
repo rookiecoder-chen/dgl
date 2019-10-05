@@ -269,7 +269,7 @@ class TencentAlchemyDataset(object):
             Labels of the datapoint for all tasks
         """
         g, l = self.graphs[item], self.labels[item]
-        return g.smiles, g, l
+        return g.smile, g, l
 
     def __len__(self):
         """Length of the dataset
