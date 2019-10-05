@@ -164,8 +164,8 @@ class TencentAlchemyDataset(object):
     atom_featurizer : callable, rdkit.Chem.rdchem.Mol -> dict
         Featurization for atoms in a molecule, which can be used to update
         ndata for a DGLGraph. By default, we store the atom atomic numbers
-        under the name "node_type" and store the atom features under the
-        name "n_feat". The atom features include:
+        under the name ``"node_type"`` and store the atom features under the
+        name ``"n_feat"``. The atom features include:
 
         * One hot encoding for atom types
         * Atomic number of atoms
@@ -177,8 +177,8 @@ class TencentAlchemyDataset(object):
     bond_featurizer : callable, rdkit.Chem.rdchem.Mol -> dict
         Featurization for bonds in a molecule, which can be used to update
         edata for a DGLGraph. By default, we store the distance between the
-        end atoms under the name "distance" and store the bond features under
-        the name "e_feat". The bond features are one-hot encodings of the bond type.
+        end atoms under the name ``"distance"`` and store the bond features under
+        the name ``"e_feat"``. The bond features are one-hot encodings of the bond type.
     """
     def __init__(self, mode='dev', from_raw=False,
                  mol_to_graph=mol_to_complete_graph,

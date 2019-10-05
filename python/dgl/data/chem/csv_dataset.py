@@ -28,7 +28,7 @@ class CSVDataset(object):
         One column includes smiles and other columns for labels.
         Column names other than smiles column would be considered as task names.
     smiles_to_graph: callable, str -> DGLGraph
-        A function turns smiles into a DGLGraph.
+        A function turning a SMILES into a DGLGraph.
     atom_featurizer : callable, rdkit.Chem.rdchem.Mol -> dict
         Featurization for atoms in a molecule, which can be used to update
         ndata for a DGLGraph.

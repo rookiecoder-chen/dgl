@@ -234,7 +234,7 @@ class ConcatAtomFeaturizer(BaseAtomFeaturizer):
         The resulting order of the atom feature will follow that of the functions
         in the list.
     atom_data_field : str
-        Name for storing atom features in DGLGraphs. Default to be 'h'.
+        Name for storing atom features in DGLGraphs. Default to be ``'h'``.
     """
     def __init__(self, atom_descriptor_funcs, atom_data_field='h'):
         super(ConcatAtomFeaturizer, self).__init__()
@@ -297,7 +297,7 @@ class ConcatAtomFeaturizer(BaseAtomFeaturizer):
 
         return {self.atom_data_field: atom_features}
 
-class CanonicalAtomFeaturizer(BaseAtomFeaturizer):
+class CanonicalAtomFeaturizer(ConcatAtomFeaturizer):
     """A default featurizer for atoms.
 
     The atom features include:
@@ -391,7 +391,7 @@ def construct_bigraph_from_mol(mol, add_self_loop=False):
     mol : rdkit.Chem.rdchem.Mol
         RDKit molecule holder
     add_self_loop : bool
-        Whether to add self loops in DGLGraphs.
+        Whether to add self loops in DGLGraphs. Default to False.
 
     Returns
     -------
@@ -432,13 +432,13 @@ def mol_to_bigraph(mol, add_self_loop=False,
     mol : rdkit.Chem.rdchem.Mol
         RDKit molecule holder
     add_self_loop : bool
-        Whether to add self loops in DGLGraphs.
+        Whether to add self loops in DGLGraphs. Default to False.
     atom_featurizer : callable, rdkit.Chem.rdchem.Mol -> dict
         Featurization for atoms in a molecule, which can be used to update
         ndata for a DGLGraph. Default to None.
     bond_featurizer : callable, rdkit.Chem.rdchem.Mol -> dict
         Featurization for bonds in a molecule, which can be used to update
-        edata for a DGLGraph.
+        edata for a DGLGraph. Default to None.
 
     Returns
     -------
@@ -458,13 +458,13 @@ def smiles_to_bigraph(smiles, add_self_loop=False,
     smiles : str
         String of SMILES
     add_self_loop : bool
-        Whether to add self loops in DGLGraphs.
+        Whether to add self loops in DGLGraphs. Default to False.
     atom_featurizer : callable, rdkit.Chem.rdchem.Mol -> dict
         Featurization for atoms in a molecule, which can be used to update
         ndata for a DGLGraph. Default to None.
     bond_featurizer : callable, rdkit.Chem.rdchem.Mol -> dict
         Featurization for bonds in a molecule, which can be used to update
-        edata for a DGLGraph.
+        edata for a DGLGraph. Default to None.
 
     Returns
     -------
@@ -488,7 +488,7 @@ def construct_complete_graph_from_mol(mol, add_self_loop=False):
     mol : rdkit.Chem.rdchem.Mol
         RDKit molecule holder
     add_self_loop : bool
-        Whether to add self loops in DGLGraphs.
+        Whether to add self loops in DGLGraphs. Default to False.
 
     Returns
     -------
@@ -522,13 +522,13 @@ def mol_to_complete_graph(mol, add_self_loop=False,
     mol : rdkit.Chem.rdchem.Mol
         RDKit molecule holder
     add_self_loop : bool
-        Whether to add self loops in DGLGraphs.
+        Whether to add self loops in DGLGraphs. Default to False.
     atom_featurizer : callable, rdkit.Chem.rdchem.Mol -> dict
         Featurization for atoms in a molecule, which can be used to update
-        ndata for a DGLGraph. Default to CanonicalAtomFeaturizer().
+        ndata for a DGLGraph. Default to None.
     bond_featurizer : callable, rdkit.Chem.rdchem.Mol -> dict
         Featurization for bonds in a molecule, which can be used to update
-        edata for a DGLGraph.
+        edata for a DGLGraph. Default to None.
 
     Returns
     -------
@@ -548,13 +548,13 @@ def smiles_to_complete_graph(smiles, add_self_loop=False,
     smiles : str
         String of SMILES
     add_self_loop : bool
-        Whether to add self loops in DGLGraphs.
+        Whether to add self loops in DGLGraphs. Default to False.
     atom_featurizer : callable, rdkit.Chem.rdchem.Mol -> dict
         Featurization for atoms in a molecule, which can be used to update
-        ndata for a DGLGraph. Default to CanonicalAtomFeaturizer().
+        ndata for a DGLGraph. Default to None.
     bond_featurizer : callable, rdkit.Chem.rdchem.Mol -> dict
         Featurization for bonds in a molecule, which can be used to update
-        edata for a DGLGraph.
+        edata for a DGLGraph. Default to None.
 
     Returns
     -------

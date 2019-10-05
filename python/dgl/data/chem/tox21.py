@@ -30,14 +30,14 @@ class Tox21(CSVDataset):
     Parameters
     ----------
     smiles_to_graph: callable, str -> DGLGraph
-        A function turns smiles into a DGLGraph. Default one can be found
-        at python/dgl/data/chem/utils.py named with smiles_to_bigraph.
+        A function turns smiles into a DGLGraph.
+        Default to :func:`dgl.data.chem.smiles_to_bigraph`.
     atom_featurizer : callable, rdkit.Chem.rdchem.Mol -> dict
         Featurization for atoms in a molecule, which can be used to update
         ndata for a DGLGraph. Default to :func:`dgl.data.chem.CanonicalAtomFeaturizer`.
     bond_featurizer : callable, rdkit.Chem.rdchem.Mol -> dict
         Featurization for bonds in a molecule, which can be used to update
-        edata for a DGLGraph.
+        edata for a DGLGraph. Default to None.
     """
     def __init__(self, smiles_to_graph=smiles_to_bigraph,
                  atom_featurizer=CanonicalAtomFeaturizer,
