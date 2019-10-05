@@ -238,7 +238,7 @@ class TencentAlchemyDataset(object):
                 graph = mol_to_graph(mol, atom_featurizer=atom_featurizer,
                                      bond_featurizer=bond_featurizer)
                 smiles = Chem.MolToSmiles(mol)
-                graph.smiles = smiles
+                graph.smile = smiles
                 self.graphs.append(graph)
                 label = F.tensor(np.array(label[1].tolist()).astype(np.float32))
                 self.labels.append(label)
