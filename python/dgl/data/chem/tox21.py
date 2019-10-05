@@ -40,7 +40,7 @@ class Tox21(CSVDataset):
         edata for a DGLGraph. Default to None.
     """
     def __init__(self, smiles_to_graph=smiles_to_bigraph,
-                 atom_featurizer=CanonicalAtomFeaturizer,
+                 atom_featurizer=None,
                  bond_featurizer=None):
         if 'pandas' not in sys.modules:
             from ...base import dgl_warning
@@ -53,6 +53,9 @@ class Tox21(CSVDataset):
         self.id = df['mol_id']
 
         df = df.drop(columns=['mol_id'])
+
+        if atom_featurizer is None:
+            atom_featurizer = CanonicalAtomFeaturizer()
 
         super().__init__(df, smiles_to_graph, atom_featurizer, bond_featurizer,
                          "smiles", "tox21_dglgraph.pkl")
