@@ -152,7 +152,16 @@ featurization methods/utilities:
     :toctree: ../../generated/
 
     chem.one_hot_encoding
+    chem.atom_type_one_hot
+    chem.atom_degree_one_hot
+    chem.atom_implicit_valence_one_hot
+    chem.atom_hybridization_one_hot
+    chem.atom_total_num_H_one_hot
+    chem.atom_formal_charge
+    chem.atom_num_radical_electrons
+    chem.atom_is_aromatic
     chem.BaseAtomFeaturizer
+    chem.ConcatAtomFeaturizer
     chem.CanonicalAtomFeaturizer
 
 Graph Construction
@@ -164,9 +173,9 @@ Several methods for constructing DGLGraphs from SMILES/RDKit molecule objects ar
     :toctree: ../../generated/
 
     chem.mol_to_graph
-    chem.smile_to_bigraph
+    chem.smiles_to_bigraph
     chem.mol_to_bigraph
-    chem.smile_to_complete_graph
+    chem.smiles_to_complete_graph
     chem.mol_to_complete_graph
 
 Dataset Classes

@@ -138,7 +138,7 @@ def collate_molgraphs_for_classification(data):
     ----------
     data : list of 4-tuples
         Each tuple is for a single datapoint, consisting of
-        a SMILE, a DGLGraph, all-task labels and all-task weights
+        a SMILES, a DGLGraph, all-task labels and all-task weights
 
     Returns
     -------
@@ -168,7 +168,7 @@ def collate_molgraphs_for_regression(data):
     ----------
     data : list of 3-tuples
         Each tuple is for a single datapoint, consisting of
-        a SMILE, a DGLGraph and all-task labels.
+        a SMILES, a DGLGraph and all-task labels.
 
     Returns
     -------
