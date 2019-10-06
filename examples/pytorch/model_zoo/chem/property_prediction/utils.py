@@ -3,6 +3,11 @@ import dgl
 import numpy as np
 import random
 import torch
+
+from dgl.data.chem import ConcatAtomFeaturizer, atomic_number_one_hot, atom_total_degree_one_hot, \
+    atom_formal_charge_one_hot, atom_chiral_tag_one_hot, atom_total_num_H_one_hot, \
+    atom_hybridization_one_hot, atom_is_aromatic_one_hot, atom_mass
+from functools import partial
 from sklearn.metrics import roc_auc_score
 
 def set_random_seed(seed=0):
@@ -186,3 +191,42 @@ def collate_molgraphs_for_regression(data):
     bg.set_e_initializer(dgl.init.zero_initializer)
     labels = torch.stack(labels, dim=0)
     return smiles, bg, labels
+
+def load_dataset_for_regression(dataset_name):
+    """Load dataset for regression tasks.
+
+    Parameters
+    ----------
+    dataset_name : str
+        Name of the dataset.
+
+    Returns
+    -------
+    train_set
+        Subset for training.
+    val_set
+        Subset for validation.
+    test_set
+        Subset for test.
+    """
+    assert dataset_name in ['Alchemy', 'ESOL']
+    if dataset_name == 'Alchemy':
+        from dgl.data.chem import TencentAlchemyDataset
+        train_set = TencentAlchemyDataset(mode='dev')
+        val_set = TencentAlchemyDataset(mode='valid')
+        test_set = None
+    elif dataset_name == 'ESOL':
+        from dgl.data.chem import ESOL
+        atom_featurizer = ConcatAtomFeaturizer(
+            atom_descriptor_funcs=[
+                partial(atomic_number_one_hot, encode_unknown=True),
+                partial(atom_total_degree_one_hot, encode_unknown=True),
+                partial(atom_formal_charge_one_hot, encode_unknown=True),
+                partial(atom_chiral_tag_one_hot, encode_unknown=True),
+                partial(atom_total_num_H_one_hot, encode_unknown=True),
+                partial(atom_hybridization_one_hot, encode_unknown=True),
+                atom_is_aromatic_one_hot,
+                atom_mass
+            ]
+        )
+        dataset = ESOL(atom_featurizer=atom_featurizer)

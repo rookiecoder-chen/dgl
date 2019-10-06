@@ -10,7 +10,8 @@ import pickle
 import zipfile
 from collections import defaultdict
 
-from .utils import mol_to_complete_graph
+from .utils import mol_to_complete_graph, atom_type_one_hot, atom_hybridization_one_hot, \
+    atom_is_aromatic
 from ..utils import download, get_download_dir, _get_dgl_url
 from ... import backend as F
 
@@ -59,25 +60,19 @@ def alchemy_nodes(mol):
     num_atoms = mol.GetNumAtoms()
     for u in range(num_atoms):
         atom = mol.GetAtomWithIdx(u)
-        symbol = atom.GetSymbol()
         atom_type = atom.GetAtomicNum()
-        aromatic = atom.GetIsAromatic()
-        hybridization = atom.GetHybridization()
         num_h = atom.GetTotalNumHs()
         atom_feats_dict['node_type'].append(atom_type)
 
         h_u = []
-        h_u += [int(symbol == x) for x in ['H', 'C', 'N', 'O', 'F', 'S', 'Cl']]
+        h_u += atom_type_one_hot(atom, ['H', 'C', 'N', 'O', 'F', 'S', 'Cl'])
         h_u.append(atom_type)
         h_u.append(is_acceptor[u])
         h_u.append(is_donor[u])
-        h_u.append(int(aromatic))
-        h_u += [
-            int(hybridization == x)
-            for x in (Chem.rdchem.HybridizationType.SP,
-                      Chem.rdchem.HybridizationType.SP2,
-                      Chem.rdchem.HybridizationType.SP3)
-        ]
+        h_u += atom_is_aromatic(atom)
+        h_u += atom_hybridization_one_hot(atom, [Chem.rdchem.HybridizationType.SP,
+                                                 Chem.rdchem.HybridizationType.SP2,
+                                                 Chem.rdchem.HybridizationType.SP3])
         h_u.append(num_h)
         atom_feats_dict['n_feat'].append(F.tensor(np.array(h_u).astype(np.float32)))
 

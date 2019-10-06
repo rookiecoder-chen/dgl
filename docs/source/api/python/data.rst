@@ -142,26 +142,48 @@ Molecular Graphs
 
 To work on molecular graphs, make sure you have installed `RDKit 2018.09.3 <https://www.rdkit.org/docs/Install.html>`__.
 
-Featurization
-`````````````
+Featurization Utils
+```````````````````
 
-For the use of graph neural networks, we need to featurize nodes (atoms) and edges (bonds). Below we list some
-featurization methods/utilities:
+For the use of graph neural networks, we need to featurize nodes (atoms) and edges (bonds).
+
+General utils:
 
 .. autosummary::
     :toctree: ../../generated/
 
     chem.one_hot_encoding
+    chem.ConcatFeaturizer
+    chem.ConcatFeaturizer.__call__
+
+Utils for atom featurization:
+
+.. autosummary::
+    :toctree: ../../generated/
+
     chem.atom_type_one_hot
+    chem.atomic_number_one_hot
+    chem.atomic_number
     chem.atom_degree_one_hot
+    chem.atom_degree
+    chem.atom_total_degree_one_hot
+    chem.atom_total_degree
     chem.atom_implicit_valence_one_hot
+    chem.atom_implicit_valence
     chem.atom_hybridization_one_hot
     chem.atom_total_num_H_one_hot
+    chem.atom_total_num_H
+    chem.atom_formal_charge_one_hot
     chem.atom_formal_charge
+    chem.atom_num_radical_electrons_one_hot
     chem.atom_num_radical_electrons
+    chem.atom_is_aromatic_one_hot
     chem.atom_is_aromatic
+    chem.atom_chiral_tag_one_hot
+    chem.atom_mass
     chem.BaseAtomFeaturizer
-    chem.ConcatAtomFeaturizer
+    chem.BaseAtomFeaturizer.feat_size
+    chem.BaseAtomFeaturizer.__call__
     chem.CanonicalAtomFeaturizer
 
 Graph Construction

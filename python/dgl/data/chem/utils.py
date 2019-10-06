@@ -1,6 +1,8 @@
 import dgl.backend as F
 import itertools
 import numpy as np
+
+from collections import defaultdict
 from functools import partial
 
 from dgl import DGLGraph
@@ -11,43 +13,55 @@ try:
 except ImportError:
     pass
 
-__all__ = ['one_hot_encoding', 'atom_type_one_hot', 'atom_degree_one_hot',
-           'atom_implicit_valence_one_hot', 'atom_hybridization_one_hot',
-           'atom_total_num_H_one_hot', 'atom_formal_charge', 'atom_num_radical_electrons',
-           'atom_is_aromatic', 'BaseAtomFeaturizer', 'ConcatAtomFeaturizer',
-           'CanonicalAtomFeaturizer', 'mol_to_graph', 'smiles_to_bigraph', 'mol_to_bigraph',
-           'smiles_to_complete_graph', 'mol_to_complete_graph']
+__all__ = ['one_hot_encoding', 'atom_type_one_hot', 'atomic_number_one_hot', 'atomic_number',
+           'atom_degree_one_hot', 'atom_degree', 'atom_total_degree_one_hot', 'atom_total_degree',
+           'atom_implicit_valence_one_hot', 'atom_implicit_valence', 'atom_hybridization_one_hot',
+           'atom_total_num_H_one_hot', 'atom_total_num_H', 'atom_formal_charge_one_hot',
+           'atom_formal_charge', 'atom_num_radical_electrons_one_hot',
+           'atom_num_radical_electrons', 'atom_is_aromatic_one_hot', 'atom_is_aromatic',
+           'atom_chiral_tag_one_hot', 'atom_mass', 'ConcatFeaturizer', 'BaseAtomFeaturizer',
+           'CanonicalAtomFeaturizer', 'mol_to_graph', 'smiles_to_bigraph',
+           'mol_to_bigraph', 'smiles_to_complete_graph', 'mol_to_complete_graph']
 
 def one_hot_encoding(x, allowable_set, encode_unknown=False):
     """One-hot encoding.
 
     Parameters
     ----------
-    x : str, int or Chem.rdchem.HybridizationType
+    x
+        Value to encode.
     allowable_set : list
         The elements of the allowable_set should be of the
         same type as x.
     encode_unknown : bool
         If True, map inputs not in the allowable set to the
-        last element.
+        additional last element.
 
     Returns
     -------
     list
         List of boolean values where at most one value is True.
+        The list is of length ``len(allowable_set)`` if ``encode_unknown=False``
+        and ``len(allowable_set) + 1`` otherwise.
     """
-    if (x not in allowable_set) and encode_unknown:
-        x = allowable_set[-1]
+    if encode_unknown:
+        allowable_set.append(None)
+        if x not in allowable_set:
+            x = None
     return list(map(lambda s: x == s, allowable_set))
 
-def atom_type_one_hot(atom, allowable_atom_types=None, encode_unknown=False):
+#################################################################
+# Atom featurization
+#################################################################
+
+def atom_type_one_hot(atom, allowable_set=None, encode_unknown=False):
     """One hot encoding for the type of an atom.
 
     Parameters
     ----------
     atom : rdkit.Chem.rdchem.Atom
         RDKit atom instance.
-    allowable_atom_types : list of str
+    allowable_set : list of str
         Atom types to consider. Default: ``C``, ``N``, ``O``, ``S``, ``F``, ``Si``, ``P``,
         ``Cl``, ``Br``, ``Mg``, ``Na``, ``Ca``, ``Fe``, ``As``, ``Al``, ``I``, ``B``, ``V``,
         ``K``, ``Tl``, ``Yb``, ``Sb``, ``Sn``, ``Ag``, ``Pd``, ``Co``, ``Se``, ``Ti``, ``Zn``,
@@ -55,113 +69,266 @@ def atom_type_one_hot(atom, allowable_atom_types=None, encode_unknown=False):
         ``Pt``, ``Hg``, ``Pb``.
     encode_unknown : bool
         If True, map inputs not in the allowable set to the
-        last element. (Default: False)
+        additional last element. (Default: False)
 
     Returns
     -------
     list
         List of boolean values where at most one value is True.
     """
-    if allowable_atom_types is None:
-        allowable_atom_types = ['C', 'N', 'O', 'S', 'F', 'Si', 'P', 'Cl', 'Br', 'Mg', 'Na', 'Ca',
-                                'Fe', 'As', 'Al', 'I', 'B', 'V', 'K', 'Tl', 'Yb', 'Sb', 'Sn',
-                                'Ag', 'Pd', 'Co', 'Se', 'Ti', 'Zn', 'H', 'Li', 'Ge', 'Cu', 'Au',
-                                'Ni', 'Cd', 'In', 'Mn', 'Zr', 'Cr', 'Pt', 'Hg', 'Pb']
-    return one_hot_encoding(atom.GetSymbol(), allowable_atom_types, encode_unknown)
+    if allowable_set is None:
+        allowable_set = ['C', 'N', 'O', 'S', 'F', 'Si', 'P', 'Cl', 'Br', 'Mg', 'Na', 'Ca',
+                         'Fe', 'As', 'Al', 'I', 'B', 'V', 'K', 'Tl', 'Yb', 'Sb', 'Sn',
+                         'Ag', 'Pd', 'Co', 'Se', 'Ti', 'Zn', 'H', 'Li', 'Ge', 'Cu', 'Au',
+                         'Ni', 'Cd', 'In', 'Mn', 'Zr', 'Cr', 'Pt', 'Hg', 'Pb']
+    return one_hot_encoding(atom.GetSymbol(), allowable_set, encode_unknown)
 
-def atom_degree_one_hot(atom, allowable_atom_degrees=None, encode_unknown=False):
-    """One hot encoding for the degree of an atom.
+def atomic_number_one_hot(atom, allowable_set=None, encode_unknown=False):
+    """One hot encoding for the atomic number of an atom.
 
     Parameters
     ----------
     atom : rdkit.Chem.rdchem.Atom
         RDKit atom instance.
-    allowable_atom_degrees : list of int
-        Atom degrees to consider. Default: ``0`` - ``10``.
+    allowable_set : list of int
+        Atomic numbers to consider. Default: ``1`` - ``100``.
     encode_unknown : bool
         If True, map inputs not in the allowable set to the
-        last element. (Default: False)
+        additional last element. (Default: False)
 
     Returns
     -------
     list
         List of boolean values where at most one value is True.
     """
-    if allowable_atom_degrees is None:
-        allowable_atom_degrees = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    return one_hot_encoding(atom.GetDegree(), allowable_atom_degrees, encode_unknown)
+    if allowable_set is None:
+        allowable_set = list(range(1, 101))
+    return one_hot_encoding(atom.GetAtomicNum(), allowable_set, encode_unknown)
 
-def atom_implicit_valence_one_hot(atom, allowable_atom_valences=None, encode_unknown=False):
+def atomic_number(atom):
+    """Get the atomic number for an atom.
+
+    Parameters
+    ----------
+    atom : rdkit.Chem.rdchem.Atom
+        RDKit atom instance.
+
+    Returns
+    -------
+    list
+       List containing one int only.
+    """
+    return [atom.GetAtomicNum()]
+
+def atom_degree_one_hot(atom, allowable_set=None, encode_unknown=False):
+    """One hot encoding for the degree of an atom.
+
+    Note that the result will be different depending on whether the Hs are
+    explicitly modeled in the graph.
+
+    Parameters
+    ----------
+    atom : rdkit.Chem.rdchem.Atom
+        RDKit atom instance.
+    allowable_set : list of int
+        Atom degrees to consider. Default: ``0`` - ``10``.
+    encode_unknown : bool
+        If True, map inputs not in the allowable set to the
+        additional last element. (Default: False)
+
+    Returns
+    -------
+    list
+        List of boolean values where at most one value is True.
+
+    See Also
+    --------
+    atom_total_degree_one_hot
+    """
+    if allowable_set is None:
+        allowable_set = list(range(11))
+    return one_hot_encoding(atom.GetDegree(), allowable_set, encode_unknown)
+
+def atom_degree(atom):
+    """Get the degree of an atom.
+
+    Note that the result will be different depending on whether the Hs are
+    explicitly modeled in the graph.
+
+    Parameters
+    ----------
+    atom : rdkit.Chem.rdchem.Atom
+        RDKit atom instance.
+
+    Returns
+    -------
+    list
+        List containing one int only.
+
+    See Also
+    --------
+    atom_total_degree
+    """
+    return [atom.GetDegree()]
+
+def atom_total_degree_one_hot(atom, allowable_set=None, encode_unknown=False):
+    """One hot encoding for the degree of an atom including Hs.
+
+    Parameters
+    ----------
+    atom : rdkit.Chem.rdchem.Atom
+        RDKit atom instance.
+    allowable_set : list
+        Total degrees to consider. Default: ``0`` - ``5``.
+    encode_unknown : bool
+        If True, map inputs not in the allowable set to the
+        additional last element. (Default: False)
+
+    See Also
+    --------
+    atom_degree_one_hot
+    """
+    if allowable_set is None:
+        allowable_set = list(range(6))
+    return one_hot_encoding(atom.GetTotalDegree(), allowable_set, encode_unknown)
+
+
+def atom_total_degree(atom):
+    """
+    See Also
+    --------
+    atom_degree
+
+    Returns
+    -------
+    list
+        List containing one int only.
+    """
+    return [atom.GetTotalDegree()]
+
+def atom_implicit_valence_one_hot(atom, allowable_set=None, encode_unknown=False):
     """One hot encoding for the implicit valences of an atom.
 
     Parameters
     ----------
     atom : rdkit.Chem.rdchem.Atom
         RDKit atom instance.
-    allowable_atom_valences : list of int
+    allowable_set : list of int
         Atom implicit valences to consider. Default: ``0`` - ``6``.
     encode_unknown : bool
         If True, map inputs not in the allowable set to the
-        last element. (Default: False)
+        additional last element. (Default: False)
 
     Returns
     -------
     list
         List of boolean values where at most one value is True.
     """
-    if allowable_atom_valences is None:
-        allowable_atom_valences = [0, 1, 2, 3, 4, 5, 6]
-    return one_hot_encoding(atom.GetImplicitValence(), allowable_atom_valences, encode_unknown)
+    if allowable_set is None:
+        allowable_set = list(range(7))
+    return one_hot_encoding(atom.GetImplicitValence(), allowable_set, encode_unknown)
 
-def atom_hybridization_one_hot(atom, allowable_atom_hybridizations=None, encode_unknown=False):
+def atom_implicit_valence(atom):
+    """Get the implicit valence of an atom.
+
+    Parameters
+    ----------
+    atom : rdkit.Chem.rdchem.Atom
+        RDKit atom instance.
+
+    Reurns
+    ------
+    list
+        List containing one int only.
+    """
+    return [atom.GetImplicitValence()]
+
+def atom_hybridization_one_hot(atom, allowable_set=None, encode_unknown=False):
     """One hot encoding for the hybridization of an atom.
 
     Parameters
     ----------
     atom : rdkit.Chem.rdchem.Atom
         RDKit atom instance.
-    allowable_atom_hybridizations : list of rdkit.Chem.rdchem.HybridizationType
+    allowable_set : list of rdkit.Chem.rdchem.HybridizationType
         Atom hybridizations to consider. Default: ``Chem.rdchem.HybridizationType.SP``,
         ``Chem.rdchem.HybridizationType.SP2``, ``Chem.rdchem.HybridizationType.SP3``,
         ``Chem.rdchem.HybridizationType.SP3D``, ``Chem.rdchem.HybridizationType.SP3D2``.
     encode_unknown : bool
         If True, map inputs not in the allowable set to the
-        last element. (Default: False)
+        additional last element. (Default: False)
 
     Returns
     -------
     list
         List of boolean values where at most one value is True.
     """
-    if allowable_atom_hybridizations is None:
-        allowable_atom_hybridizations = [Chem.rdchem.HybridizationType.SP,
-                                         Chem.rdchem.HybridizationType.SP2,
-                                         Chem.rdchem.HybridizationType.SP3,
-                                         Chem.rdchem.HybridizationType.SP3D,
-                                         Chem.rdchem.HybridizationType.SP3D2]
-    return one_hot_encoding(atom.GetHybridization(), allowable_atom_hybridizations, encode_unknown)
+    if allowable_set is None:
+        allowable_set = [Chem.rdchem.HybridizationType.SP,
+                         Chem.rdchem.HybridizationType.SP2,
+                         Chem.rdchem.HybridizationType.SP3,
+                         Chem.rdchem.HybridizationType.SP3D,
+                         Chem.rdchem.HybridizationType.SP3D2]
+    return one_hot_encoding(atom.GetHybridization(), allowable_set, encode_unknown)
 
-def atom_total_num_H_one_hot(atom, allowable_atom_num_H=None, encode_unknown=False):
+def atom_total_num_H_one_hot(atom, allowable_set=None, encode_unknown=False):
     """One hot encoding for the total number of Hs of an atom.
 
     Parameters
     ----------
     atom : rdkit.Chem.rdchem.Atom
         RDKit atom instance.
-    allowable_atom_num_H : list of int
+    allowable_set : list of int
         Total number of Hs to consider. Default: ``0`` - ``4``.
     encode_unknown : bool
         If True, map inputs not in the allowable set to the
-        last element. (Default: False)
+        additional last element. (Default: False)
 
     Returns
     -------
     list
         List of boolean values where at most one value is True.
     """
-    if allowable_atom_num_H is None:
-        allowable_atom_num_H = [0, 1, 2, 3, 4]
-    return one_hot_encoding(atom.GetTotalNumHs(), allowable_atom_num_H, encode_unknown)
+    if allowable_set is None:
+        allowable_set = list(range(5))
+    return one_hot_encoding(atom.GetTotalNumHs(), allowable_set, encode_unknown)
+
+def atom_total_num_H(atom):
+    """Get the total number of Hs of an atom.
+
+    Parameters
+    ----------
+    atom : rdkit.Chem.rdchem.Atom
+        RDKit atom instance.
+
+    Returns
+    -------
+    list
+        List containing one int only.
+    """
+    return [atom.GetTotalNumHs()]
+
+def atom_formal_charge_one_hot(atom, allowable_set=None, encode_unknown=False):
+    """One hot encoding for the formal charge of an atom.
+
+    Parameters
+    ----------
+    atom : rdkit.Chem.rdchem.Atom
+        RDKit atom instance.
+    allowable_set : list of int
+        Formal charges to consider. Default: ``-2`` - ``2``.
+    encode_unknown : bool
+        If True, map inputs not in the allowable set to the
+        additional last element. (Default: False)
+
+    Returns
+    -------
+    list
+        List of boolean values where at most one value is True.
+    """
+    if allowable_set is None:
+        allowable_set = list(range(-2, 3))
+    return one_hot_encoding(atom.GetFormalCharge(), allowable_set, encode_unknown)
 
 def atom_formal_charge(atom):
     """Get formal charge for an atom.
@@ -178,6 +345,28 @@ def atom_formal_charge(atom):
     """
     return [atom.GetFormalCharge()]
 
+def atom_num_radical_electrons_one_hot(atom, allowable_set=None, encode_unknown=False):
+    """One hot encoding for the number of radical electrons of an atom.
+
+    Parameters
+    ----------
+    atom : rdkit.Chem.rdchem.Atom
+        RDKit atom instance.
+    allowable_set : list of int
+        Number of radical electrons to consider. Default: ``0`` - ``4``.
+    encode_unknown : bool
+        If True, map inputs not in the allowable set to the
+        additional last element. (Default: False)
+
+    Returns
+    -------
+    list
+        List of boolean values where at most one value is True.
+    """
+    if allowable_set is None:
+        allowable_set = list(range(5))
+    return one_hot_encoding(atom.GetNumRadicalElectrons(), allowable_set, encode_unknown)
+
 def atom_num_radical_electrons(atom):
     """Get the number of radical electrons for an atom.
 
@@ -192,6 +381,28 @@ def atom_num_radical_electrons(atom):
         List containing one int only.
     """
     return [atom.GetNumRadicalElectrons()]
+
+def atom_is_aromatic_one_hot(atom, allowable_set=None, encode_unknown=False):
+    """One hot encoding for whether the atom is aromatic.
+
+    Parameters
+    ----------
+    atom : rdkit.Chem.rdchem.Atom
+        RDKit atom instance.
+    allowable_set : list of bool
+        Conditions to consider. Default: ``False`` and ``True``.
+    encode_unknown : bool
+        If True, map inputs not in the allowable set to the
+        additional last element. (Default: False)
+
+    Returns
+    -------
+    list
+        List of boolean values where at most one value is True.
+    """
+    if allowable_set is None:
+        allowable_set = [False, True]
+    return one_hot_encoding(atom.GetIsAromatic(), allowable_set, encode_unknown)
 
 def atom_is_aromatic(atom):
     """Get whether the atom is aromatic.
@@ -208,72 +419,115 @@ def atom_is_aromatic(atom):
     """
     return [atom.GetIsAromatic()]
 
-class BaseAtomFeaturizer(object):
-    """An abstract class for atom featurizers
-
-    All atom featurizers that map a molecule to atom features should subclass it.
-    All subclasses should overwrite ``_featurize_atom``, which featurizes a single
-    atom and ``__call__``, which loops over all atoms and featurize them with
-    ``_featurize_atom``.
-    """
-    def _featurize_atom(self, atom):
-        return NotImplementedError
-
-    def __call__(self, mol):
-        return NotImplementedError
-
-class ConcatAtomFeaturizer(BaseAtomFeaturizer):
-    """Initialize a single atom feature by concatenating multiple descriptors of it,
-    e.g. atom degree.
+def atom_chiral_tag_one_hot(atom, allowable_set=None, encode_unknown=False):
+    """One hot encoding for the chiral tag of an atom.
 
     Parameters
     ----------
-    atom_descriptor_funcs : list
-        List of functions for computing descriptors of atoms. Each function is of
-        signature ``func(rdkit.Chem.rdchem.Atom) -> list of float or bool or int``.
-        The resulting order of the atom feature will follow that of the functions
-        in the list.
-    atom_data_field : str
-        Name for storing atom features in DGLGraphs. Default to be ``'h'``.
+    atom : rdkit.Chem.rdchem.Atom
+        RDKit atom instance.
+    allowable_set : list of rdkit.Chem.rdchem.ChiralType
+        Chiral tags to consider. Default: ``rdkit.Chem.rdchem.ChiralType.CHI_UNSPECIFIED``,
+        ``rdkit.Chem.rdchem.ChiralType.CHI_TETRAHEDRAL_CW``,
+        ``rdkit.Chem.rdchem.ChiralType.CHI_TETRAHEDRAL_CCW``,
+        ``rdkit.Chem.rdchem.ChiralType.CHI_OTHER``.
     """
-    def __init__(self, atom_descriptor_funcs, atom_data_field='h'):
-        super(ConcatAtomFeaturizer, self).__init__()
+    if allowable_set is None:
+        allowable_set = [Chem.rdchem.ChiralType.CHI_UNSPECIFIED,
+                         Chem.rdchem.ChiralType.CHI_TETRAHEDRAL_CW,
+                         Chem.rdchem.ChiralType.CHI_TETRAHEDRAL_CCW,
+                         Chem.rdchem.ChiralType.CHI_OTHER]
+    return one_hot_encoding(atom.GetChiralTag(), allowable_set, encode_unknown)
 
-        self.atom_descriptor_funcs = atom_descriptor_funcs
-        self.atom_data_field = atom_data_field
-        self.atom_feat_size = None
+def atom_mass(atom, coef=0.01):
+    """Get the mass of an atom and scale it.
 
-    @property
-    def feat_size(self):
-        """Returns feature size
+    Parameters
+    ----------
+    atom : rdkit.Chem.rdchem.Atom
+        RDKit atom instance.
+    coef : float
+        The mass will be multiplied by ``coef``.
+
+    Returns
+    -------
+    list
+        List containing one float only.
+    """
+    return [atom.GetMass() * coef]
+
+class ConcatFeaturizer(object):
+    """Concatenate the evaluation results of multiple functions as a single feature.
+
+    Parameters
+    ----------
+    data_type
+        The type of objects that we want to featurize. E.g. ``rdkit.Chem.rdchem.Atom``
+        or ``rdkit.Chem.rdchem.Bond``.
+    func_list : list
+        List of functions for computing molecular descriptors from objects of type
+        ``data_type``. Each function is of signature
+        ``func(data_type) -> list of float or bool or int``. The resulting order of
+        the features will follow that of the functions in the list.
+    """
+    def __init__(self, data_type, func_list):
+        self.data_type = data_type
+        self.func_list = func_list
+
+    def __call__(self, x):
+        """Featurize the input data.
+
+        Parameters
+        ----------
+        x : self.data_type
+            Data to featurize.
+
+        Returns
+        -------
+        list
+            List of feature values, which can be of type bool, float or int.
+        """
+        assert isinstance(x, self.data_type), \
+            'Expect the input data to be of type {}, got {}'.format(
+                self.data_type, type(x))
+        return list(itertools.chain.from_iterable(
+            [func(x) for func in self.func_list]))
+
+class BaseAtomFeaturizer(object):
+    """An abstract class for atom featurizers.
+
+    Loop over all atoms and featurize them with the ``featurizer_funcs``.
+
+    Parameters
+    ----------
+    featurizer_funcs : dict
+        Mapping feature name to the featurization function.
+        Each function is of signature ``func(rdkit.Chem.rdchem.Atom) -> list or 1D numpy array``.
+    """
+    def __init__(self, featurizer_funcs):
+        self.featurizer_funcs = featurizer_funcs
+        self._feat_sizes = dict()
+
+    def feat_size(self, feat_name):
+        """Get the feature size for ``feat_name``.
 
         Returns
         -------
         int
+            Feature size for the feature with name ``feat_name``.
         """
-        if self.atom_feat_size is None:
+        if feat_name not in self.featurizer_funcs:
+            return ValueError('Expect feat_name to be in {}, got {}'.format(
+                list(self.featurizer_funcs.keys()), feat_name))
+
+        if feat_name not in self._feat_sizes:
             atom = Chem.MolFromSmiles('C').GetAtomWithIdx(0)
-            self.atom_feat_size = len(self._featurize_atom(atom))
-        return self.atom_feat_size
+            self._feat_sizes[feat_name] = len(self.featurizer_funcs[feat_name](atom))
 
-    def _featurize_atom(self, atom):
-        """Featurize an atom
-
-        Parameters
-        ----------
-        atom : rdkit.Chem.rdchem.Atom
-            Container for atom information.
-
-        Returns
-        -------
-        results : list
-            List of feature values, which can be of type bool, float or int.
-        """
-        return list(itertools.chain.from_iterable(
-            [func(atom) for func in self.atom_descriptor_funcs]))
+        return self._feat_sizes[feat_name]
 
     def __call__(self, mol):
-        """Featurize a molecule
+        """Featurize all atoms in a molecule.
 
         Parameters
         ----------
@@ -283,21 +537,28 @@ class ConcatAtomFeaturizer(BaseAtomFeaturizer):
         Returns
         -------
         dict
-            Store the atom feature under key ``self.atom_data_field``.
-            The feature is tensor of dtype float32 and shape (N, self.atom_feat_size),
-            where N is the number of atoms in the molecule
+            For each function in self.featurizer_funcs with the key ``k``, store the computed
+            feature under the key ``k``. Each feature is a tensor of dtype float32 and shape
+            (N, M), where N is the number of atoms in the molecule.
         """
         num_atoms = mol.GetNumAtoms()
-        atom_features = []
+        atom_features = defaultdict(list)
+
+        # Compute features for each atom
         for i in range(num_atoms):
             atom = mol.GetAtomWithIdx(i)
-            atom_features.append(self._featurize_atom(atom))
-        atom_features = np.stack(atom_features)
-        atom_features = F.zerocopy_from_numpy(atom_features.astype(np.float32))
+            for feat_name, feat_func in self.featurizer_funcs.items():
+                atom_features[feat_name].append(feat_func(atom))
 
-        return {self.atom_data_field: atom_features}
+        # Stack the features and convert them to float arrays
+        processed_features = dict()
+        for feat_name, feat_list in atom_features.items():
+            feat = np.stack(feat_list)
+            processed_features[feat_name] = F.zerocopy_from_numpy(feat.astype(np.float32))
 
-class CanonicalAtomFeaturizer(ConcatAtomFeaturizer):
+        return processed_features
+
+class CanonicalAtomFeaturizer(BaseAtomFeaturizer):
     """A default featurizer for atoms.
 
     The atom features include:
@@ -327,17 +588,21 @@ class CanonicalAtomFeaturizer(ConcatAtomFeaturizer):
     """
     def __init__(self, atom_data_field='h'):
         super(CanonicalAtomFeaturizer, self).__init__(
-            atom_descriptor_funcs=[
-                atom_type_one_hot,
-                atom_degree_one_hot,
-                atom_implicit_valence_one_hot,
-                atom_formal_charge,
-                atom_num_radical_electrons,
-                atom_hybridization_one_hot,
-                atom_is_aromatic,
-                atom_total_num_H_one_hot
-            ],
-            atom_data_field=atom_data_field)
+            featurizer_funcs={atom_data_field: ConcatFeaturizer(
+                Chem.rdchem.Atom,
+                [atom_type_one_hot,
+                 atom_degree_one_hot,
+                 atom_implicit_valence_one_hot,
+                 atom_formal_charge,
+                 atom_num_radical_electrons,
+                 atom_hybridization_one_hot,
+                 atom_is_aromatic,
+                 atom_total_num_H_one_hot]
+            )})
+
+#################################################################
+# DGLGraph Construction
+#################################################################
 
 def mol_to_graph(mol, graph_constructor, atom_featurizer, bond_featurizer):
     """Convert an RDKit molecule object into a DGLGraph and featurize for it.

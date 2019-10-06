@@ -61,6 +61,9 @@ def main(args):
         from dgl.data.chem import TencentAlchemyDataset
         train_set = TencentAlchemyDataset(mode='dev')
         val_set = TencentAlchemyDataset(mode='valid')
+    elif args['dataset'] == 'ESOL':
+        from dgl.data.chem import ESOL
+        dataset = ESOL()
 
     train_loader = DataLoader(dataset=train_set,
                               batch_size=args['batch_size'],
