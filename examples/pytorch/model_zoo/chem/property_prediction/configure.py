@@ -49,12 +49,27 @@ MGCN_Alchemy = {
     'patience': 50
 }
 
+MPNN_ESOL = {
+    'batch_size': 16
+}
+
+SCHNET_ESOL = {
+    'batch_size': 16
+}
+
+MGCN_ESOL = {
+    'batch_size': 16
+}
+
 experiment_configures = {
     'GCN_Tox21': GCN_Tox21,
     'GAT_Tox21': GAT_Tox21,
     'MPNN_Alchemy': MPNN_Alchemy,
     'SCHNET_Alchemy': SCHNET_Alchemy,
-    'MGCN_Alchemy': MGCN_Alchemy
+    'MGCN_Alchemy': MGCN_Alchemy,
+    'MPNN_ESOL': MPNN_ESOL,
+    'SCHNET_ESOL': SCHNET_ESOL,
+    'MGCN_ESOL': MGCN_ESOL
 }
 
 def get_exp_configure(exp_name):

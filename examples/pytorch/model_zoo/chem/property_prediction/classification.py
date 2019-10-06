@@ -4,6 +4,7 @@ from torch.optim import Adam
 from torch.utils.data import DataLoader
 
 from dgl import model_zoo
+from dgl.data.chem import CanonicalAtomFeaturizer
 from dgl.data.utils import split_dataset
 
 from utils import Meter, EarlyStopping, collate_molgraphs_for_classification, set_random_seed
@@ -49,7 +50,7 @@ def main(args):
     # Interchangeable with other datasets
     if args['dataset'] == 'Tox21':
         from dgl.data.chem import Tox21
-        dataset = Tox21()
+        dataset = Tox21(atom_featurizer=CanonicalAtomFeaturizer())
 
     trainset, valset, testset = split_dataset(dataset, args['train_val_test_split'])
     train_loader = DataLoader(trainset, batch_size=args['batch_size'],

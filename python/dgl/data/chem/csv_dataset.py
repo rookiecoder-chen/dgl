@@ -7,7 +7,6 @@ import pickle
 import sys
 
 from dgl import DGLGraph
-from .utils import smiles_to_bigraph
 
 
 class CSVDataset(object):

@@ -2,7 +2,7 @@ import numpy as np
 import sys
 
 from .csv_dataset import CSVDataset
-from .utils import smiles_to_bigraph, CanonicalAtomFeaturizer
+from .utils import smiles_to_bigraph
 from ..utils import get_download_dir, download, _get_dgl_url
 
 try:
@@ -30,11 +30,11 @@ class Tox21(CSVDataset):
     Parameters
     ----------
     smiles_to_graph: callable, str -> DGLGraph
-        A function turns smiles into a DGLGraph.
+        A function turning smiles into a DGLGraph.
         Default to :func:`dgl.data.chem.smiles_to_bigraph`.
     atom_featurizer : callable, rdkit.Chem.rdchem.Mol -> dict
         Featurization for atoms in a molecule, which can be used to update
-        ndata for a DGLGraph. Default to :func:`dgl.data.chem.CanonicalAtomFeaturizer`.
+        ndata for a DGLGraph. Default to None.
     bond_featurizer : callable, rdkit.Chem.rdchem.Mol -> dict
         Featurization for bonds in a molecule, which can be used to update
         edata for a DGLGraph. Default to None.
@@ -51,11 +51,7 @@ class Tox21(CSVDataset):
         download(_get_dgl_url(self._url), path=data_path)
         df = pd.read_csv(data_path)
         self.id = df['mol_id']
-
         df = df.drop(columns=['mol_id'])
-
-        if atom_featurizer is None:
-            atom_featurizer = CanonicalAtomFeaturizer()
 
         super().__init__(df, smiles_to_graph, atom_featurizer, bond_featurizer,
                          "smiles", "tox21_dglgraph.pkl")
