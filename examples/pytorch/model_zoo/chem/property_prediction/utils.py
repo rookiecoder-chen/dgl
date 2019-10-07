@@ -204,7 +204,7 @@ def load_dataset_for_classification(args):
     assert args['dataset'] in ['Tox21']
     if args['dataset'] == 'Tox21':
         from dgl.data.chem import Tox21
-        dataset = Tox21(args['atom_featurizer'])
+        dataset = Tox21(atom_featurizer=args['atom_featurizer'])
         train_set, val_set, test_set = split_dataset(dataset, args['train_val_test_split'])
 
     return dataset, train_set, val_set, test_set
