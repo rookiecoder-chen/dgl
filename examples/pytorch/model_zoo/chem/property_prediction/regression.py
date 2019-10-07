@@ -4,7 +4,7 @@ from torch.utils.data import DataLoader
 
 from dgl import model_zoo
 
-from utils import set_random_seed, collate_molgraphs, EarlyStopping, \
+from utils import Meter, set_random_seed, collate_molgraphs, EarlyStopping, \
     load_dataset_for_regression
 
 def regress(args, model, bg):
@@ -20,37 +20,35 @@ def regress(args, model, bg):
                                      edge_distances.to(args['device'])
         return model(bg, node_types, edge_distances)
 
-def run_a_train_epoch(args, epoch, model, data_loader,
-                      loss_criterion, score_criterion, optimizer):
+def run_a_train_epoch(args, epoch, model, data_loader, loss_criterion, optimizer):
     model.train()
-    total_loss, total_score = 0, 0
+    train_meter = Meter()
+    total_loss = 0
     for batch_id, batch_data in enumerate(data_loader):
         smiles, bg, labels, masks = batch_data
         labels = labels.to(args['device'])
         prediction = regress(args, model, bg)
         loss = (loss_criterion(prediction, labels) * (masks != 0).float()).mean()
-        score = score_criterion(prediction, labels)
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
         total_loss += loss.detach().item() * bg.batch_size
-        total_score += score.detach().item() * bg.batch_size
+        train_meter.update(prediction, labels, masks)
     total_loss /= len(data_loader.dataset)
-    total_score /= len(data_loader.dataset)
+    total_score = train_meter.l1_loss_averaged_over_tasks() / len(data_loader.dataset)
     print('epoch {:d}/{:d}, training loss {:.4f}, training score {:.4f}'.format(
         epoch + 1, args['num_epochs'], total_loss, total_score))
 
-def run_an_eval_epoch(args, model, data_loader, score_criterion):
+def run_an_eval_epoch(args, model, data_loader):
     model.eval()
-    total_score = 0
+    val_meter = Meter()
     with torch.no_grad():
         for batch_id, batch_data in enumerate(data_loader):
             smiles, bg, labels, masks = batch_data
             labels = labels.to(args['device'])
             prediction = regress(args, model, bg)
-            score = score_criterion(prediction, labels)
-            total_score += score.detach().item() * bg.batch_size
-        total_score /= len(data_loader.dataset)
+            val_meter.update(prediction, labels, masks)
+    total_score = val_meter.l1_loss_averaged_over_tasks() / len(data_loader.dataset)
     return total_score
 
 def main(args):
@@ -77,16 +75,15 @@ def main(args):
     model.to(args['device'])
 
     loss_fn = nn.MSELoss(reduction='none')
-    score_fn = nn.L1Loss()
     optimizer = torch.optim.Adam(model.parameters(), lr=args['lr'])
     stopper = EarlyStopping(mode='lower', patience=args['patience'])
 
     for epoch in range(args['num_epochs']):
         # Train
-        run_a_train_epoch(args, epoch, model, train_loader, loss_fn, score_fn, optimizer)
+        run_a_train_epoch(args, epoch, model, train_loader, loss_fn, optimizer)
 
         # Validation and early stop
-        val_score = run_an_eval_epoch(args, model, val_loader, score_fn)
+        val_score = run_an_eval_epoch(args, model, val_loader)
         early_stop = stopper.step(val_score, model)
         print('epoch {:d}/{:d}, validation score {:.4f}, best validation score {:.4f}'.format(
             epoch + 1, args['num_epochs'], val_score, stopper.best_score))

@@ -3,6 +3,7 @@ import dgl
 import numpy as np
 import random
 import torch
+import torch.nn.functional as F
 
 from dgl.data.chem import ConcatFeaturizer, BaseAtomFeaturizer, atomic_number_one_hot,\
     atom_total_degree_one_hot, atom_formal_charge_one_hot, atom_chiral_tag_one_hot,\
@@ -74,6 +75,26 @@ class Meter(object):
             task_y_true = y_true[:, task][task_w != 0].numpy()
             task_y_pred = y_pred[:, task][task_w != 0].numpy()
             total_score += roc_auc_score(task_y_true, task_y_pred)
+        return total_score / n_tasks
+
+    def l1_loss_averaged_over_tasks(self):
+        """Compute l1 loss for each task and return the average.
+
+        Returns
+        -------
+        float
+            l1 loss averaged over all tasks
+        """
+        mask = torch.cat(self.mask, dim=0)
+        y_pred = torch.cat(self.y_pred, dim=0)
+        y_true = torch.cat(self.y_true, dim=0)
+        n_tasks = y_true.shape[1]
+        total_score = 0
+        for task in range(n_tasks):
+            task_w = mask[:, task]
+            task_y_true = y_true[:, task][task_w != 0]
+            task_y_pred = y_pred[:, task][task_w != 0]
+            total_score += F.l1_loss(task_y_true, task_y_pred, reduction='sum').item()
         return total_score / n_tasks
 
 class EarlyStopping(object):
@@ -236,7 +257,7 @@ def load_dataset_for_regression(args):
         from dgl.data.chem import ESOL
 
         atom_featurizer = BaseAtomFeaturizer(
-            {'h': ConcatFeaturizer(
+            {'n_feat': ConcatFeaturizer(
                 Chem.rdchem.Atom,
                 [partial(atomic_number_one_hot, encode_unknown=True),
                  partial(atom_total_degree_one_hot, encode_unknown=True),
@@ -247,7 +268,7 @@ def load_dataset_for_regression(args):
                  atom_is_aromatic_one_hot,
                  atom_mass]
             )})
-        bond_featurizer = CanonicalBondFeaturizer()
+        bond_featurizer = CanonicalBondFeaturizer('e_feat')
         dataset = ESOL(atom_featurizer=atom_featurizer, bond_featurizer=bond_featurizer)
         train_set, val_set, test_set = split_dataset(dataset, args['train_val_test_split'])
 
