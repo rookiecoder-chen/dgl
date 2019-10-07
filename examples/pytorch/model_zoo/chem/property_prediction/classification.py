@@ -12,20 +12,20 @@ def run_a_train_epoch(args, epoch, model, data_loader, loss_criterion, optimizer
     model.train()
     train_meter = Meter()
     for batch_id, batch_data in enumerate(data_loader):
-        smiles, bg, labels, mask = batch_data
+        smiles, bg, labels, masks = batch_data
         atom_feats = bg.ndata.pop(args['atom_data_field'])
-        atom_feats, labels, mask = atom_feats.to(args['device']), \
+        atom_feats, labels, masks = atom_feats.to(args['device']), \
                                    labels.to(args['device']), \
-                                   mask.to(args['device'])
+                                   masks.to(args['device'])
         logits = model(bg, atom_feats)
         # Mask non-existing labels
-        loss = (loss_criterion(logits, labels) * (mask != 0).float()).mean()
+        loss = (loss_criterion(logits, labels) * (masks != 0).float()).mean()
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
         print('epoch {:d}/{:d}, batch {:d}/{:d}, loss {:.4f}'.format(
             epoch + 1, args['num_epochs'], batch_id + 1, len(data_loader), loss.item()))
-        train_meter.update(logits, labels, mask)
+        train_meter.update(logits, labels, masks)
     train_roc_auc = train_meter.roc_auc_averaged_over_tasks()
     print('epoch {:d}/{:d}, training roc-auc score {:.4f}'.format(
         epoch + 1, args['num_epochs'], train_roc_auc))

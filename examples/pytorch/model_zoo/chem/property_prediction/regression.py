@@ -28,7 +28,7 @@ def run_a_train_epoch(args, epoch, model, data_loader,
         smiles, bg, labels, masks = batch_data
         labels = labels.to(args['device'])
         prediction = regress(args, model, bg)
-        loss = loss_criterion(prediction, labels)
+        loss = (loss_criterion(prediction, labels) * (masks != 0).float()).mean()
         score = score_criterion(prediction, labels)
         optimizer.zero_grad()
         loss.backward()
@@ -76,7 +76,7 @@ def main(args):
         model.set_mean_std(train_set.mean, train_set.std, args['device'])
     model.to(args['device'])
 
-    loss_fn = nn.MSELoss()
+    loss_fn = nn.MSELoss(reduction='none')
     score_fn = nn.L1Loss()
     optimizer = torch.optim.Adam(model.parameters(), lr=args['lr'])
     stopper = EarlyStopping(mode='lower', patience=args['patience'])
