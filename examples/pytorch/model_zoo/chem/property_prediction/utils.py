@@ -12,7 +12,7 @@ from dgl.data.chem import ConcatFeaturizer, BaseAtomFeaturizer, atomic_number_on
 from dgl.data.utils import split_dataset
 from functools import partial
 from rdkit import Chem
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_auc_score, mean_squared_error
 
 def set_random_seed(seed=0):
     """Set random seed.
@@ -96,6 +96,26 @@ class Meter(object):
             task_y_pred = y_pred[:, task][task_w != 0]
             total_score += F.l1_loss(task_y_true, task_y_pred, reduction='sum').item()
         return total_score / n_tasks
+
+    def rmse_averaged_over_tasks(self):
+        """Compute RMSE for each task and return the average.
+
+        Returns
+        -------
+        float
+            RMSE averaged over all tasks
+        """
+        mask = torch.cat(self.mask, dim=0)
+        y_pred = torch.cat(self.y_pred, dim=0)
+        y_true = torch.cat(self.y_true, dim=0)
+        n_data, n_tasks = y_true.shape
+        total_score = 0
+        for task in range(n_tasks):
+            task_w = mask[:, task]
+            task_y_true = y_true[:, task][task_w != 0].numpy()
+            task_y_pred = y_pred[:, task][task_w != 0].numpy()
+            total_score += roc_auc_score(task_y_true, task_y_pred)
+        return total_score * n_data / n_tasks
 
 class EarlyStopping(object):
     """Early stop performing

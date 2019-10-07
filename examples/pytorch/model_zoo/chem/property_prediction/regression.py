@@ -35,7 +35,10 @@ def run_a_train_epoch(args, epoch, model, data_loader, loss_criterion, optimizer
         total_loss += loss.detach().item() * bg.batch_size
         train_meter.update(prediction, labels, masks)
     total_loss /= len(data_loader.dataset)
-    total_score = train_meter.l1_loss_averaged_over_tasks() / len(data_loader.dataset)
+    if args['score'] == 'l1':
+        total_score = train_meter.l1_loss_averaged_over_tasks() / len(data_loader.dataset)
+    elif args['score'] == 'RMSE':
+        total_score = train_meter.rmse_averaged_over_tasks() / len(data_loader.dataset)
     print('epoch {:d}/{:d}, training loss {:.4f}, training score {:.4f}'.format(
         epoch + 1, args['num_epochs'], total_loss, total_score))
 
@@ -48,7 +51,10 @@ def run_an_eval_epoch(args, model, data_loader):
             labels = labels.to(args['device'])
             prediction = regress(args, model, bg)
             eval_meter.update(prediction, labels, masks)
-    total_score = eval_meter.l1_loss_averaged_over_tasks() / len(data_loader.dataset)
+    if args['score'] == 'l1':
+        total_score = eval_meter.l1_loss_averaged_over_tasks() / len(data_loader.dataset)
+    elif args['score'] == 'RMSE':
+        total_score = eval_meter.rmse_averaged_over_tasks() / len(data_loader.dataset)
     return total_score
 
 def main(args):
@@ -111,6 +117,8 @@ if __name__ == "__main__":
                         help='Model to use')
     parser.add_argument('-d', '--dataset', type=str, choices=['Alchemy', 'ESOL'],
                         help='Dataset to use')
+    parser.add_argument('-s', '--score', type=str, choices=['l1', 'RMSE'],
+                        default='l1', help='Score function for evaluation.')
     args = parser.parse_args().__dict__
     args['exp'] = '_'.join([args['model'], args['dataset']])
     args.update(get_exp_configure(args['exp']))
