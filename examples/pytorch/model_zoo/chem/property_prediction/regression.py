@@ -4,7 +4,7 @@ from torch.utils.data import DataLoader
 
 from dgl import model_zoo
 
-from utils import set_random_seed, collate_molgraphs_for_regression, EarlyStopping, \
+from utils import set_random_seed, collate_molgraphs, EarlyStopping, \
     load_dataset_for_regression
 
 def regress(args, model, bg):
@@ -25,7 +25,7 @@ def run_a_train_epoch(args, epoch, model, data_loader,
     model.train()
     total_loss, total_score = 0, 0
     for batch_id, batch_data in enumerate(data_loader):
-        smiles, bg, labels = batch_data
+        smiles, bg, labels, masks = batch_data
         labels = labels.to(args['device'])
         prediction = regress(args, model, bg)
         loss = loss_criterion(prediction, labels)
@@ -45,7 +45,7 @@ def run_an_eval_epoch(args, model, data_loader, score_criterion):
     total_score = 0
     with torch.no_grad():
         for batch_id, batch_data in enumerate(data_loader):
-            smiles, bg, labels = batch_data
+            smiles, bg, labels, masks = batch_data
             labels = labels.to(args['device'])
             prediction = regress(args, model, bg)
             score = score_criterion(prediction, labels)
@@ -58,13 +58,13 @@ def main(args):
     set_random_seed()
 
     # Interchangeable with other datasets
-    train_set, val_set, test_set = load_dataset_for_regression(args['dataset'])
+    train_set, val_set, test_set = load_dataset_for_regression(args)
     train_loader = DataLoader(dataset=train_set,
                               batch_size=args['batch_size'],
-                              collate_fn=collate_molgraphs_for_regression)
+                              collate_fn=collate_molgraphs)
     val_loader = DataLoader(dataset=val_set,
                             batch_size=args['batch_size'],
-                            collate_fn=collate_molgraphs_for_regression)
+                            collate_fn=collate_molgraphs)
 
     if args['model'] == 'MPNN':
         model = model_zoo.chem.MPNNModel(output_dim=args['output_dim'])

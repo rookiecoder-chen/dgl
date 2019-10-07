@@ -21,7 +21,10 @@ __all__ = ['one_hot_encoding', 'atom_type_one_hot', 'atomic_number_one_hot', 'at
            'atom_num_radical_electrons', 'atom_is_aromatic_one_hot', 'atom_is_aromatic',
            'atom_chiral_tag_one_hot', 'atom_mass', 'ConcatFeaturizer', 'BaseAtomFeaturizer',
            'CanonicalAtomFeaturizer', 'mol_to_graph', 'smiles_to_bigraph',
-           'mol_to_bigraph', 'smiles_to_complete_graph', 'mol_to_complete_graph']
+           'mol_to_bigraph', 'smiles_to_complete_graph', 'mol_to_complete_graph',
+           'bond_type_one_hot', 'bond_is_conjugated_one_hot', 'bond_is_conjugated',
+           'bond_is_in_ring_one_hot', 'bond_is_in_ring', 'bond_stereo_one_hot',
+           'BaseBondFeaturizer', 'CanonicalBondFeaturizer']
 
 def one_hot_encoding(x, allowable_set, encode_unknown=False):
     """One-hot encoding.
@@ -191,7 +194,6 @@ def atom_total_degree_one_hot(atom, allowable_set=None, encode_unknown=False):
     if allowable_set is None:
         allowable_set = list(range(6))
     return one_hot_encoding(atom.GetTotalDegree(), allowable_set, encode_unknown)
-
 
 def atom_total_degree(atom):
     """
@@ -496,17 +498,22 @@ class ConcatFeaturizer(object):
 class BaseAtomFeaturizer(object):
     """An abstract class for atom featurizers.
 
-    Loop over all atoms and featurize them with the ``featurizer_funcs``.
+    Loop over all atoms in a molecule and featurize them with the ``featurizer_funcs``.
 
     Parameters
     ----------
     featurizer_funcs : dict
         Mapping feature name to the featurization function.
         Each function is of signature ``func(rdkit.Chem.rdchem.Atom) -> list or 1D numpy array``.
+    feat_sizes : dict
+        Mapping feature name to the size of the corresponding feature. If None, they will be
+        computed when needed. Default: None.
     """
-    def __init__(self, featurizer_funcs):
+    def __init__(self, featurizer_funcs, feat_sizes=None):
         self.featurizer_funcs = featurizer_funcs
-        self._feat_sizes = dict()
+        if feat_sizes is None:
+            feat_sizes = dict()
+        self._feat_sizes = feat_sizes
 
     def feat_size(self, feat_name):
         """Get the feature size for ``feat_name``.
@@ -598,6 +605,235 @@ class CanonicalAtomFeaturizer(BaseAtomFeaturizer):
                  atom_hybridization_one_hot,
                  atom_is_aromatic,
                  atom_total_num_H_one_hot]
+            )})
+
+def bond_type_one_hot(bond, allowable_set=None, encode_unknown=False):
+    """One hot encoding for the type of a bond.
+
+    Parameters
+    ----------
+    bond : rdkit.Chem.rdchem.Bond
+        RDKit bond instance.
+    allowable_set : list of Chem.rdchem.BondType
+        Bond types to consider. Default: ``Chem.rdchem.BondType.SINGLE``,
+        ``Chem.rdchem.BondType.DOUBLE``, ``Chem.rdchem.BondType.TRIPLE``,
+        ``Chem.rdchem.BondType.AROMATIC``.
+    encode_unknown : bool
+        If True, map inputs not in the allowable set to the
+        additional last element. (Default: False)
+
+    Returns
+    -------
+    list
+        List of boolean values where at most one value is True.
+    """
+    if allowable_set is None:
+        allowable_set = [Chem.rdchem.BondType.SINGLE,
+                         Chem.rdchem.BondType.DOUBLE,
+                         Chem.rdchem.BondType.TRIPLE,
+                         Chem.rdchem.BondType.AROMATIC]
+    return one_hot_encoding(bond.GetBondType(), allowable_set, encode_unknown)
+
+def bond_is_conjugated_one_hot(bond, allowable_set=None, encode_unknown=False):
+    """One hot encoding for whether the bond is conjugated.
+
+    Parameters
+    ----------
+    bond : rdkit.Chem.rdchem.Bond
+        RDKit bond instance.
+    allowable_set : list of bool
+        Conditions to consider. Default: ``False`` and ``True``.
+    encode_unknown : bool
+        If True, map inputs not in the allowable set to the
+        additional last element. (Default: False)
+
+    Returns
+    -------
+    list
+        List of boolean values where at most one value is True.
+    """
+    if allowable_set is None:
+        allowable_set = [False, True]
+    return one_hot_encoding(bond.GetIsConjugated(), allowable_set, encode_unknown)
+
+def bond_is_conjugated(bond):
+    """Get whether the bond is conjugated.
+
+    Parameters
+    ----------
+    bond : rdkit.Chem.rdchem.Bond
+        RDKit bond instance.
+
+    Returns
+    -------
+    list
+        List containing one bool only.
+    """
+    return [bond.GetIsConjugated()]
+
+def bond_is_in_ring_one_hot(bond, allowable_set=None, encode_unknown=False):
+    """One hot encoding for whether the bond is in a ring of any size.
+
+    Parameters
+    ----------
+    bond : rdkit.Chem.rdchem.Bond
+        RDKit bond instance.
+    allowable_set : list of bool
+        Conditions to consider. Default: ``False`` and ``True``.
+    encode_unknown : bool
+        If True, map inputs not in the allowable set to the
+        additional last element. (Default: False)
+
+    Returns
+    -------
+    list
+        List of boolean values where at most one value is True.
+    """
+    if allowable_set is None:
+        allowable_set = [False, True]
+    return one_hot_encoding(bond.IsInRing(), allowable_set, encode_unknown)
+
+def bond_is_in_ring(bond):
+    """Get whether the bond is in a ring of any size.
+
+    Parameters
+    ----------
+    bond : rdkit.Chem.rdchem.Bond
+        RDKit bond instance.
+
+    Returns
+    -------
+    list
+        List containing one bool only.
+    """
+    return [bond.IsInRing()]
+
+def bond_stereo_one_hot(bond, allowable_set=None, encode_unknown=False):
+    """One hot encoding for the stereo configuration of a bond.
+
+    Parameters
+    ----------
+    bond : rdkit.Chem.rdchem.Bond
+        RDKit bond instance.
+    allowable_set : list of rdkit.Chem.rdchem.BondStereo
+        Stereo configurations to consider. Default: ``rdkit.Chem.rdchem.BondStereo.STEREONONE``,
+        ``rdkit.Chem.rdchem.BondStereo.STEREOANY``, ``rdkit.Chem.rdchem.BondStereo.STEREOZ``,
+        ``rdkit.Chem.rdchem.BondStereo.STEREOE``, ``rdkit.Chem.rdchem.BondStereo.STEREOCIS``,
+        ``rdkit.Chem.rdchem.BondStereo.STEREOTRANS``.
+    encode_unknown : bool
+        If True, map inputs not in the allowable set to the
+        additional last element. (Default: False)
+
+    Returns
+    -------
+    list
+        List of boolean values where at most one value is True.
+    """
+    if allowable_set is None:
+        allowable_set = [Chem.rdchem.BondStereo.STEREONONE,
+                         Chem.rdchem.BondStereo.STEREOANY,
+                         Chem.rdchem.BondStereo.STEREOZ,
+                         Chem.rdchem.BondStereo.STEREOE,
+                         Chem.rdchem.BondStereo.STEREOCIS,
+                         Chem.rdchem.BondStereo.STEREOTRANS]
+    return one_hot_encoding(bond.GetStereo(), allowable_set, encode_unknown)
+
+class BaseBondFeaturizer(object):
+    """An abstract class for bond featurizers.
+
+    Loop over all bonds in a molecule and featurize them with the ``featurizer_funcs``.
+
+    We assume the constructed ``DGLGraph`` is a bi-directed graph where the **i** th bond in the
+    molecule, i.e. ``mol.GetBondWithIdx(i)``, corresponds to the **(2i)**-th and **(2i+1)**-th edges
+    in the DGLGraph.
+
+    Parameters
+    ----------
+    featurizer_funcs : dict
+        Mapping feature name to the featurization function.
+        Each function is of signature ``func(rdkit.Chem.rdchem.Bond) -> list or 1D numpy array``.
+    feat_sizes : dict
+        Mapping feature name to the size of the corresponding feature. If None, they will be
+        computed when needed. Default: None.
+    """
+    def __init__(self, featurizer_funcs, feat_sizes=None):
+        self.featurizer_funcs = featurizer_funcs
+        if feat_sizes is None:
+            feat_sizes = dict()
+        self._feat_sizes = feat_sizes
+
+    def feat_size(self, feat_name):
+        """Get the feature size for ``feat_name``.
+
+        Returns
+        -------
+        int
+            Feature size for the feature with name ``feat_name``.
+        """
+        if feat_name not in self.featurizer_funcs:
+            return ValueError('Expect feat_name to be in {}, got {}'.format(
+                list(self.featurizer_funcs.keys()), feat_name))
+
+        if feat_name not in self._feat_sizes:
+            bond = Chem.MolFromSmiles('CO').GetBondWithIdx(0)
+            self._feat_sizes[feat_name] = len(self.featurizer_funcs[feat_name](bond))
+
+        return self._feat_sizes[feat_name]
+
+    def __call__(self, mol):
+        """Featurize all bonds in a molecule.
+
+        Parameters
+        ----------
+        mol : rdkit.Chem.rdchem.Mol
+            RDKit molecule instance.
+
+        Returns
+        -------
+        dict
+            For each function in self.featurizer_funcs with the key ``k``, store the computed
+            feature under the key ``k``. Each feature is a tensor of dtype float32 and shape
+            (N, M), where N is the number of atoms in the molecule.
+        """
+        num_bonds = mol.GetNumBonds()
+        bond_features = defaultdict(list)
+
+        # Compute features for each bond
+        for i in range(num_bonds):
+            bond = mol.GetBondWithIdx(i)
+            for feat_name, feat_func in self.featurizer_funcs.items():
+                feat = feat_func(bond)
+                bond_features[feat_name].extend([feat, feat.copy()])
+
+        # Stack the features and convert them to float arrays
+        processed_features = dict()
+        for feat_name, feat_list in bond_features.items():
+            feat = np.stack(feat_list)
+            processed_features[feat_name] = F.zerocopy_from_numpy(feat.astype(np.float32))
+
+        return processed_features
+
+class CanonicalBondFeaturizer(BaseBondFeaturizer):
+    """A default featurizer for bonds.
+
+    The bond features include:
+
+    * **One hot encoding of the bond type**. The supported bond types include
+      ``SINGLE``, ``DOUBLE``, ``TRIPLE``, ``AROMATIC``.
+    * **Whether the bond is conjugated.**.
+    * **Whether the bond is in a ring of any size.**
+    * **One hot encoding of the stereo configuration of a bond**. The supported bond stereo
+      configurations include ``STEREONONE``, ``STEREOANY``, ``STEREOZ``, ``STEREOE``,
+      ``STEREOCIS``, ``STEREOTRANS``.
+    """
+    def __init__(self, bond_data_field='e'):
+        super(CanonicalBondFeaturizer, self).__init__(
+            featurizer_funcs={bond_data_field: ConcatFeaturizer(
+                Chem.rdchem.Bond,
+                [bond_type_one_hot,
+                 bond_is_conjugated,
+                 bond_is_in_ring,
+                 bond_stereo_one_hot]
             )})
 
 #################################################################

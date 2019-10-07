@@ -4,10 +4,9 @@ from torch.optim import Adam
 from torch.utils.data import DataLoader
 
 from dgl import model_zoo
-from dgl.data.chem import CanonicalAtomFeaturizer
-from dgl.data.utils import split_dataset
 
-from utils import Meter, EarlyStopping, collate_molgraphs_for_classification, set_random_seed
+from utils import Meter, EarlyStopping, collate_molgraphs, set_random_seed, \
+    load_dataset_for_classification
 
 def run_a_train_epoch(args, epoch, model, data_loader, loss_criterion, optimizer):
     model.train()
@@ -36,11 +35,11 @@ def run_an_eval_epoch(args, model, data_loader):
     eval_meter = Meter()
     with torch.no_grad():
         for batch_id, batch_data in enumerate(data_loader):
-            smiles, bg, labels, mask = batch_data
+            smiles, bg, labels, masks = batch_data
             atom_feats = bg.ndata.pop(args['atom_data_field'])
             atom_feats, labels = atom_feats.to(args['device']), labels.to(args['device'])
             logits = model(bg, atom_feats)
-            eval_meter.update(logits, labels, mask)
+            eval_meter.update(logits, labels, masks)
     return eval_meter.roc_auc_averaged_over_tasks()
 
 def main(args):
@@ -48,17 +47,13 @@ def main(args):
     set_random_seed()
 
     # Interchangeable with other datasets
-    if args['dataset'] == 'Tox21':
-        from dgl.data.chem import Tox21
-        dataset = Tox21(atom_featurizer=CanonicalAtomFeaturizer())
-
-    trainset, valset, testset = split_dataset(dataset, args['train_val_test_split'])
-    train_loader = DataLoader(trainset, batch_size=args['batch_size'],
-                              collate_fn=collate_molgraphs_for_classification)
-    val_loader = DataLoader(valset, batch_size=args['batch_size'],
-                            collate_fn=collate_molgraphs_for_classification)
-    test_loader = DataLoader(testset, batch_size=args['batch_size'],
-                             collate_fn=collate_molgraphs_for_classification)
+    dataset, train_set, val_set, test_set = load_dataset_for_classification(args)
+    train_loader = DataLoader(train_set, batch_size=args['batch_size'],
+                              collate_fn=collate_molgraphs)
+    val_loader = DataLoader(val_set, batch_size=args['batch_size'],
+                            collate_fn=collate_molgraphs)
+    test_loader = DataLoader(test_set, batch_size=args['batch_size'],
+                             collate_fn=collate_molgraphs)
 
     if args['pre_trained']:
         args['num_epochs'] = 0

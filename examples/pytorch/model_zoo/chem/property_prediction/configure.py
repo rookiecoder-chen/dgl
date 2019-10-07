@@ -1,3 +1,5 @@
+from dgl.data.chem import CanonicalAtomFeaturizer
+
 GCN_Tox21 = {
     'batch_size': 128,
     'lr': 1e-3,
@@ -7,7 +9,8 @@ GCN_Tox21 = {
     'in_feats': 74,
     'gcn_hidden_feats': [64, 64],
     'classifier_hidden_feats': 64,
-    'patience': 10
+    'patience': 10,
+    'atom_featurizer': CanonicalAtomFeaturizer()
 }
 
 GAT_Tox21 = {
@@ -20,7 +23,8 @@ GAT_Tox21 = {
     'gat_hidden_feats': [32, 32],
     'classifier_hidden_feats': 64,
     'num_heads': [4, 4],
-    'patience': 10
+    'patience': 10,
+    'atom_featurizer': CanonicalAtomFeaturizer()
 }
 
 MPNN_Alchemy = {
@@ -50,15 +54,18 @@ MGCN_Alchemy = {
 }
 
 MPNN_ESOL = {
-    'batch_size': 16
+    'batch_size': 16,
+    'train_val_test_split': [0.8, 0.1, 0.1],
 }
 
 SCHNET_ESOL = {
-    'batch_size': 16
+    'batch_size': 16,
+    'train_val_test_split': [0.8, 0.1, 0.1],
 }
 
 MGCN_ESOL = {
-    'batch_size': 16
+    'batch_size': 16,
+    'train_val_test_split': [0.8, 0.1, 0.1],
 }
 
 experiment_configures = {

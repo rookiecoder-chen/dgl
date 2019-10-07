@@ -186,6 +186,22 @@ Utils for atom featurization:
     chem.BaseAtomFeaturizer.__call__
     chem.CanonicalAtomFeaturizer
 
+Utils for bond featurization:
+
+.. autosummary::
+    :toctree: ../../generated/
+
+    chem.bond_type_one_hot
+    chem.bond_is_conjugated_one_hot
+    chem.bond_is_conjugated
+    chem.bond_is_in_ring_one_hot
+    chem.bond_is_in_ring
+    chem.bond_stereo_one_hot
+    chem.BaseBondFeaturizer
+    chem.BaseBondFeaturizer.feat_size
+    chem.BaseBondFeaturizer.__call__
+    chem.CanonicalBondFeaturizer
+
 Graph Construction
 ``````````````````
 

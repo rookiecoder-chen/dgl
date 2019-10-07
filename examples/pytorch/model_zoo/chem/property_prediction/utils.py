@@ -6,7 +6,9 @@ import torch
 
 from dgl.data.chem import ConcatFeaturizer, BaseAtomFeaturizer, atomic_number_one_hot,\
     atom_total_degree_one_hot, atom_formal_charge_one_hot, atom_chiral_tag_one_hot,\
-    atom_total_num_H_one_hot, atom_hybridization_one_hot, atom_is_aromatic_one_hot, atom_mass
+    atom_total_num_H_one_hot, atom_hybridization_one_hot, atom_is_aromatic_one_hot, atom_mass, \
+    CanonicalBondFeaturizer
+from dgl.data.utils import split_dataset
 from functools import partial
 from rdkit import Chem
 from sklearn.metrics import roc_auc_score
@@ -137,14 +139,15 @@ class EarlyStopping(object):
         '''Load model saved with early stopping.'''
         model.load_state_dict(torch.load(self.filename)['model_state_dict'])
 
-def collate_molgraphs_for_classification(data):
-    """Batching a list of datapoints for dataloader in classification tasks.
+def collate_molgraphs(data):
+    """Batching a list of datapoints for dataloader.
 
     Parameters
     ----------
-    data : list of 4-tuples
+    data : list of 3-tuples or 4-tuples.
         Each tuple is for a single datapoint, consisting of
-        a SMILES, a DGLGraph, all-task labels and all-task weights
+        a SMILES, a DGLGraph, all-task labels and optionally
+        a binary mask indicating the existence of labels.
 
     Returns
     -------
@@ -155,51 +158,64 @@ def collate_molgraphs_for_classification(data):
     labels : Tensor of dtype float32 and shape (B, T)
         Batched datapoint labels. B is len(data) and
         T is the number of total tasks.
-    weights : Tensor of dtype float32 and shape (B, T)
-        Batched datapoint weights. T is the number of
-        total tasks.
+    masks : Tensor of dtype float32 and shape (B, T)
+        Batched datapoint binary mask, indicating the
+        existence of labels. If binary masks are not
+        provided, return a tensor with ones.
     """
-    smiles, graphs, labels, mask = map(list, zip(*data))
+    assert len(data[0]) in [3, 4], \
+        'Expect the tuple to be of length 3 or 4, got {:d}'.format(len(data[0]))
+    if len(data[0]) == 3:
+        smiles, graphs, labels = map(list, zip(*data))
+        masks = None
+    else:
+        smiles, graphs, labels, masks = map(list, zip(*data))
+
     bg = dgl.batch(graphs)
     bg.set_n_initializer(dgl.init.zero_initializer)
     bg.set_e_initializer(dgl.init.zero_initializer)
     labels = torch.stack(labels, dim=0)
-    mask = torch.stack(mask, dim=0)
-    return smiles, bg, labels, mask
 
-def collate_molgraphs_for_regression(data):
-    """Batching a list of datapoints for dataloader in regression tasks.
+    if masks is None:
+        masks = torch.ones(labels.shape)
+    else:
+        masks = torch.stack(masks, dim=0)
+    return smiles, bg, labels, masks
+
+def load_dataset_for_classification(args):
+    """Load dataset for classification tasks.
 
     Parameters
     ----------
-    data : list of 3-tuples
-        Each tuple is for a single datapoint, consisting of
-        a SMILES, a DGLGraph and all-task labels.
+    args : dict
+        Configurations.
 
     Returns
     -------
-    smiles : list
-        List of smiles
-    bg : BatchedDGLGraph
-        Batched DGLGraphs
-    labels : Tensor of dtype float32 and shape (B, T)
-        Batched datapoint labels. B is len(data) and
-        T is the number of total tasks.
+    dataset
+        The whole dataset.
+    train_set
+        Subset for training.
+    val_set
+        Subset for validation.
+    test_set
+        Subset for test.
     """
-    smiles, graphs, labels = map(list, zip(*data))
-    bg = dgl.batch(graphs)
-    bg.set_n_initializer(dgl.init.zero_initializer)
-    bg.set_e_initializer(dgl.init.zero_initializer)
-    labels = torch.stack(labels, dim=0)
-    return smiles, bg, labels
+    assert args['dataset'] in ['Tox21']
+    if args['dataset'] == 'Tox21':
+        from dgl.data.chem import Tox21
+        dataset = Tox21(args['atom_featurizer'])
+        train_set, val_set, test_set = split_dataset(dataset, args['train_val_test_split'])
 
-def load_dataset_for_regression(dataset_name):
+    return dataset, train_set, val_set, test_set
+
+def load_dataset_for_regression(args):
     """Load dataset for regression tasks.
 
     Parameters
     ----------
-    dataset_name : str
-        Name of the dataset.
+    args : dict
+        Configurations.
 
     Returns
     -------
@@ -210,13 +226,13 @@ def load_dataset_for_regression(dataset_name):
     test_set
         Subset for test.
     """
-    assert dataset_name in ['Alchemy', 'ESOL']
-    if dataset_name == 'Alchemy':
+    assert args['dataset'] in ['Alchemy', 'ESOL']
+    if args['dataset'] == 'Alchemy':
         from dgl.data.chem import TencentAlchemyDataset
         train_set = TencentAlchemyDataset(mode='dev')
         val_set = TencentAlchemyDataset(mode='valid')
         test_set = None
-    elif dataset_name == 'ESOL':
+    elif args['dataset'] == 'ESOL':
         from dgl.data.chem import ESOL
 
         atom_featurizer = BaseAtomFeaturizer(
@@ -231,6 +247,8 @@ def load_dataset_for_regression(dataset_name):
                  atom_is_aromatic_one_hot,
                  atom_mass]
             )})
-        dataset = ESOL(atom_featurizer=atom_featurizer)
+        bond_featurizer = CanonicalBondFeaturizer()
+        dataset = ESOL(atom_featurizer=atom_featurizer, bond_featurizer=bond_featurizer)
+        train_set, val_set, test_set = split_dataset(dataset, args['train_val_test_split'])
 
     return train_set, val_set, test_set
