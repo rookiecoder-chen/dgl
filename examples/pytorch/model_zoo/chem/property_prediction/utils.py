@@ -114,7 +114,7 @@ class Meter(object):
             task_w = mask[:, task]
             task_y_true = y_true[:, task][task_w != 0].numpy()
             task_y_pred = y_pred[:, task][task_w != 0].numpy()
-            total_score += roc_auc_score(task_y_true, task_y_pred)
+            total_score += mean_squared_error(task_y_true, task_y_pred)
         return total_score * n_data / n_tasks
 
 class EarlyStopping(object):
