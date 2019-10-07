@@ -54,18 +54,24 @@ MGCN_Alchemy = {
 }
 
 MPNN_ESOL = {
-    'batch_size': 16,
     'train_val_test_split': [0.8, 0.1, 0.1],
+    'batch_size': 16,
+    'num_epochs': 250,
+    'output_dim': 1,
+    'lr': 0.0001,
+    'patience': 50
 }
 
 SCHNET_ESOL = {
     'batch_size': 16,
     'train_val_test_split': [0.8, 0.1, 0.1],
+    'output_dim': 1
 }
 
 MGCN_ESOL = {
     'batch_size': 16,
     'train_val_test_split': [0.8, 0.1, 0.1],
+    'output_dim': 1
 }
 
 experiment_configures = {

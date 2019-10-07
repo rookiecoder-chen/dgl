@@ -41,14 +41,14 @@ def run_a_train_epoch(args, epoch, model, data_loader, loss_criterion, optimizer
 
 def run_an_eval_epoch(args, model, data_loader):
     model.eval()
-    val_meter = Meter()
+    eval_meter = Meter()
     with torch.no_grad():
         for batch_id, batch_data in enumerate(data_loader):
             smiles, bg, labels, masks = batch_data
             labels = labels.to(args['device'])
             prediction = regress(args, model, bg)
-            val_meter.update(prediction, labels, masks)
-    total_score = val_meter.l1_loss_averaged_over_tasks() / len(data_loader.dataset)
+            eval_meter.update(prediction, labels, masks)
+    total_score = eval_meter.l1_loss_averaged_over_tasks() / len(data_loader.dataset)
     return total_score
 
 def main(args):
@@ -63,6 +63,10 @@ def main(args):
     val_loader = DataLoader(dataset=val_set,
                             batch_size=args['batch_size'],
                             collate_fn=collate_molgraphs)
+    if test_set is not None:
+        test_loader = DataLoader(dataset=test_set,
+                                 batch_size=args['batch_size'],
+                                 collate_fn=collate_molgraphs)
 
     if args['model'] == 'MPNN':
         model = model_zoo.chem.MPNNModel(output_dim=args['output_dim'])
@@ -89,6 +93,11 @@ def main(args):
             epoch + 1, args['num_epochs'], val_score, stopper.best_score))
         if early_stop:
             break
+
+    if not args['pre_trained']:
+        stopper.load_checkpoint(model)
+    test_l1_loss = run_an_eval_epoch(args, model, test_loader)
+    print('test l1 loss {:.4f}'.format(test_l1_loss))
 
 if __name__ == "__main__":
     import argparse
