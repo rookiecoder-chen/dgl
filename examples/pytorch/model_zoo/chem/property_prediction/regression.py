@@ -102,8 +102,7 @@ def main(args):
         if early_stop:
             break
 
-    if not args['pre_trained']:
-        stopper.load_checkpoint(model)
+    stopper.load_checkpoint(model)
     test_l1_loss = run_an_eval_epoch(args, model, test_loader)
     print('test l1 loss {:.4f}'.format(test_l1_loss))
 
