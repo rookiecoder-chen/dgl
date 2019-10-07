@@ -30,6 +30,8 @@ GAT_Tox21 = {
 MPNN_Alchemy = {
     'batch_size': 16,
     'num_epochs': 250,
+    'node_in_feats': 15,
+    'edge_in_feats': 5,
     'output_dim': 12,
     'lr': 0.0001,
     'patience': 50
@@ -57,6 +59,8 @@ MPNN_ESOL = {
     'train_val_test_split': [0.8, 0.1, 0.1],
     'batch_size': 16,
     'num_epochs': 250,
+    'node_in_feats': 134,
+    'edge_in_feats': 12,
     'output_dim': 1,
     'lr': 0.0001,
     'patience': 50

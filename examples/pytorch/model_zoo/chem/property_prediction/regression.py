@@ -69,7 +69,9 @@ def main(args):
                                  collate_fn=collate_molgraphs)
 
     if args['model'] == 'MPNN':
-        model = model_zoo.chem.MPNNModel(output_dim=args['output_dim'])
+        model = model_zoo.chem.MPNNModel(node_input_dim=args['node_in_feats'],
+                                         edge_input_dim=args['edge_in_feats'],
+                                         output_dim=args['output_dim'])
     elif args['model'] == 'SCHNET':
         model = model_zoo.chem.SchNet(norm=args['norm'], output_dim=args['output_dim'])
         model.set_mean_std(train_set.mean, train_set.std, args['device'])
