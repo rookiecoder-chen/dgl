@@ -26,7 +26,7 @@ def run_a_train_epoch(args, epoch, model, data_loader, loss_criterion, optimizer
     total_loss = 0
     for batch_id, batch_data in enumerate(data_loader):
         smiles, bg, labels, masks = batch_data
-        labels = labels.to(args['device'])
+        labels, masks = labels.to(args['device']), masks.to(args['device'])
         prediction = regress(args, model, bg)
         loss = (loss_criterion(prediction, labels) * (masks != 0).float()).mean()
         optimizer.zero_grad()
