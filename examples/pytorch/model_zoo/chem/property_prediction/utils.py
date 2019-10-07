@@ -232,3 +232,5 @@ def load_dataset_for_regression(dataset_name):
                  atom_mass]
             )})
         dataset = ESOL(atom_featurizer=atom_featurizer)
+
+    return train_set, val_set, test_set

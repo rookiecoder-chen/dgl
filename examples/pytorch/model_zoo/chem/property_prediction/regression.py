@@ -4,7 +4,8 @@ from torch.utils.data import DataLoader
 
 from dgl import model_zoo
 
-from utils import set_random_seed, collate_molgraphs_for_regression, EarlyStopping
+from utils import set_random_seed, collate_molgraphs_for_regression, EarlyStopping, \
+    load_dataset_for_regression
 
 def regress(args, model, bg):
     if args['model'] == 'MPNN':
@@ -57,14 +58,7 @@ def main(args):
     set_random_seed()
 
     # Interchangeable with other datasets
-    if args['dataset'] == 'Alchemy':
-        from dgl.data.chem import TencentAlchemyDataset
-        train_set = TencentAlchemyDataset(mode='dev')
-        val_set = TencentAlchemyDataset(mode='valid')
-    elif args['dataset'] == 'ESOL':
-        from dgl.data.chem import ESOL
-        dataset = ESOL()
-
+    train_set, val_set, test_set = load_dataset_for_regression(args['dataset'])
     train_loader = DataLoader(dataset=train_set,
                               batch_size=args['batch_size'],
                               collate_fn=collate_molgraphs_for_regression)
