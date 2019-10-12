@@ -95,6 +95,7 @@ def main(args):
     optimizer = torch.optim.Adam(model.parameters(), lr=args['lr'])
     stopper = EarlyStopping(mode='lower', patience=args['patience'])
 
+    print('Start training')
     for epoch in range(args['num_epochs']):
         # Train
         run_a_train_epoch(args, epoch, model, train_loader, loss_fn, optimizer)
@@ -123,7 +124,7 @@ if __name__ == "__main__":
     from configure import get_exp_configure
 
     parser = argparse.ArgumentParser(description='Molecule Regression')
-    parser.add_argument('-m', '--model', type=str, choices=['MPNN', 'SCHNET', 'MGCN'],
+    parser.add_argument('-m', '--model', type=str, choices=['MPNN', 'SCHNET', 'MGCN'], default='MPNN',
                         help='Model to use')
     parser.add_argument('-d', '--dataset', type=str, default='ESOL')
     parser.add_argument('-s', '--score', type=str, default='RMSE')
