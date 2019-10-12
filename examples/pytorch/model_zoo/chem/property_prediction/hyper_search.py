@@ -166,7 +166,7 @@ if __name__ == "__main__":
         all_mean_val_scores.append(np.mean(setting_val_scores))
         all_mean_test_scores.append(np.mean(setting_test_scores))
 
-    best_setting_idx = np.argmax(all_mean_val_scores)
+    best_setting_idx = np.argmin(all_mean_val_scores)
     best_val_score = all_mean_val_scores[best_setting_idx]
     best_test_score = all_mean_test_scores[best_setting_idx]
     summary = hyper_choices[best_setting_idx]
