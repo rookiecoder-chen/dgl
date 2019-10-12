@@ -58,7 +58,7 @@ MGCN_Alchemy = {
 MPNN_ESOL = {
     'train_val_test_split': [0.8, 0.1, 0.1],
     'batch_size': 16,
-    'num_epochs': 250,
+    'num_epochs': 1000000,
     'node_in_feats': 134,
     'edge_in_feats': 12,
     'output_dim': 1,
