@@ -115,6 +115,7 @@ def main(args):
 if __name__ == "__main__":
     import argparse
     import numpy as np
+    import pickle
     from copy import deepcopy
     from pprint import pprint
     from sklearn.model_selection import ParameterGrid
@@ -173,3 +174,6 @@ if __name__ == "__main__":
         'best_test_score': best_test_score
     })
     pprint(summary)
+
+    with open('summary.pkl', 'wb') as f:
+        pickle.dump(summary, f)
