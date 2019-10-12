@@ -147,11 +147,12 @@ if __name__ == "__main__":
     all_mean_test_scores = []
 
     for i, setting in enumerate(hyper_choices):
-        print('Processing choice {:d}/{:d}'.format(i+1, num_choices))
         setting_val_scores = []
         setting_test_scores = []
 
         for run in range(args['num_runs']):
+            print('Processing choice {:d}/{:d}, run {:d}/{:d}'.format(
+                i + 1, num_choices, run + 1, args['num_runs']))
             seed = run * 1000
             setting_args = deepcopy(args)
             setting_args.update(setting)
