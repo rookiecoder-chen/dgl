@@ -77,11 +77,15 @@ class CSVDataset(object):
             with open(self.cache_file_path, 'rb') as f:
                 self.graphs = pickle.load(f)
         else:
-            self.graphs = [smiles_to_graph(s, atom_featurizer=atom_featurizer,
-                                           bond_featurizer=bond_featurizer)
-                           for s in self.smiles]
+            print('Preparing dgl graphs from scratch')
+            self.graphs = []
+            for i, s in enumerate(self.smiles):
+                print('Processing smile {:d}/{:d}'.format(i + 1, len(self)))
+                self.graphs.append(smiles_to_graph(s, atom_featurizer=atom_featurizer,
+                                                   bond_featurizer=bond_featurizer))
             with open(self.cache_file_path, 'wb') as f:
                 pickle.dump(self.graphs, f)
+            print('Finished preparing dgl graphs, saved to {}'.format(self.cache_file_path))
 
         _label_values = self.df[self.task_names].values
         # np.nan_to_num will also turn inf into a very large number
