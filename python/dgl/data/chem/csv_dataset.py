@@ -7,6 +7,7 @@ import sys
 
 from .utils import smile_to_bigraph
 from ..utils import save_graphs, load_graphs
+from ... import backend as F
 from ...graph import DGLGraph
 
 class CSVDataset(object):
