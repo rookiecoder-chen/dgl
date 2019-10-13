@@ -74,8 +74,8 @@ class CSVDataset(object):
                 self.graphs.append(smile_to_graph(s))
             _label_values = self.df[self.task_names].values
             # np.nan_to_num will also turn inf into a very large number
-            self.labels = np.nan_to_num(_label_values).astype(np.float32)
-            self.mask = (~np.isnan(_label_values)).astype(np.float32)
+            self.labels = F.zerocopy_from_numpy(np.nan_to_num(_label_values).astype(np.float32))
+            self.mask = F.zerocopy_from_numpy((~np.isnan(_label_values)).astype(np.float32))
             save_graphs(self.cache_file_path, self.graphs,
                         labels={'labels': self.labels, 'mask': self.mask})
 
@@ -98,9 +98,7 @@ class CSVDataset(object):
         Tensor of dtype float32
             Binary masks indicating the existence of labels for all tasks
         """
-        return self.smiles[item], self.graphs[item], \
-               F.zerocopy_from_numpy(self.labels[item]),  \
-               F.zerocopy_from_numpy(self.mask[item])
+        return self.smiles[item], self.graphs[item], self.labels[item], self.mask[item]
 
     def __len__(self):
         """Length of the dataset
