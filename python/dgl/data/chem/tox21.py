@@ -46,7 +46,7 @@ class Tox21(CSVDataset):
 
         df = df.drop(columns=['mol_id'])
 
-        super().__init__(df, smile_to_graph, cache_file_path="tox21_dglgraph.pkl")
+        super().__init__(df, smile_to_graph, cache_file_path="tox21_dglgraph.bin")
         self._weight_balancing()
 
     
