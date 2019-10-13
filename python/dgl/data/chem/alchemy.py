@@ -172,7 +172,7 @@ class TencentAlchemyDataset(object):
         file_dir = osp.join(get_download_dir(), 'Alchemy_data')
 
         if not from_raw:
-            file_name = "%s_processed_data_format" % (mode)
+            file_name = "%s_processed_dgl" % (mode)
         else:
             file_name = "%s_single_sdf" % (mode)
         self.file_dir = pathlib.Path(file_dir, file_name)
